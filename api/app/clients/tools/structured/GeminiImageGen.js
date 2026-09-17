@@ -11,6 +11,7 @@ const {
   getBalanceConfig,
   getEnvProxyDispatcher,
   getTransactionsConfig,
+  resolveGeminiImageModel,
 } = require('@librechat/api');
 const { getStrategyFunctions } = require('~/server/services/Files/strategies');
 const { spendTokens, getFiles } = require('~/models');
@@ -307,6 +308,7 @@ async function recordTokenUsage({ usageMetadata, req, userId, conversationId, mo
 /**
  * Creates Gemini Image Generation tool
  * @param {Object} fields - Configuration fields
+ * @param {string} [fields.geminiModel] - Image model for this agent, already resolved from its `tool_options`
  * @returns {ReturnType<tool>} - The image generation tool
  */
 function createGeminiImageTool(fields = {}) {
@@ -317,6 +319,10 @@ function createGeminiImageTool(fields = {}) {
   }
 
   const { req, imageFiles = [], userId, fileStrategy, GEMINI_API_KEY, GOOGLE_KEY } = fields;
+
+  /** Resolved by the caller from the agent's `tool_options`; callers that pass
+   *  nothing fall back to the deployment-wide model. */
+  const geminiModel = fields.geminiModel || resolveGeminiImageModel();
 
   const imageOutputType = fields.imageOutputType || EImageOutputType.PNG;
 
@@ -356,7 +362,6 @@ function createGeminiImageTool(fields = {}) {
       }
 
       let apiResponse;
-      const geminiModel = process.env.GEMINI_IMAGE_MODEL || 'gemini-2.5-flash-image';
       const config = {
         responseModalities: ['TEXT', 'IMAGE'],
       };

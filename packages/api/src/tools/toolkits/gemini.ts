@@ -1,4 +1,22 @@
+import type { AgentToolOptions } from 'librechat-data-provider';
 import type { ExtendedJsonSchema } from '../registry/schema';
+
+/** Model used when neither the agent nor the deployment selects one. */
+export const DEFAULT_GEMINI_IMAGE_MODEL = 'gemini-2.5-flash-image';
+
+/**
+ * Resolves the image model for one `gemini_image_gen` call, preferring the
+ * agent's own `tool_options` over the deployment-wide `GEMINI_IMAGE_MODEL`.
+ * An agent that sets nothing keeps the deployment default, so existing agents
+ * behave exactly as before this option existed.
+ */
+export function resolveGeminiImageModel(toolOptions?: AgentToolOptions | null): string {
+  const agentModel = toolOptions?.gemini_image_gen?.image_model?.trim();
+  if (agentModel) {
+    return agentModel;
+  }
+  return process.env.GEMINI_IMAGE_MODEL || DEFAULT_GEMINI_IMAGE_MODEL;
+}
 
 /** Default description for Gemini image generation tool */
 const DEFAULT_GEMINI_IMAGE_GEN_DESCRIPTION =

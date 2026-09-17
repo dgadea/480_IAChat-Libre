@@ -109,6 +109,13 @@ export type ToolOptions = {
    * @default false
    */
   describe_intent?: boolean;
+  /**
+   * Provider model this tool generates with, overriding the deployment-wide
+   * default for this agent only. Consumed by `gemini_image_gen`, so one agent
+   * can draft on a cheap image model while another renders on an expensive
+   * one. Unset falls back to the deployment default.
+   */
+  image_model?: string;
 };
 
 /**

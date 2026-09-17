@@ -10,6 +10,7 @@ import type { AgentForm } from '~/common';
 import PluginAuthForm from '~/components/Plugins/Store/PluginAuthForm';
 import { pluginNeedsAuth } from '../../items/auth';
 import Background from '../../../Background';
+import ImageModel from '../../../ImageModel';
 import { useLocalize } from '~/hooks';
 
 interface Props {
@@ -102,6 +103,7 @@ export default function ToolSection({ item }: Props) {
           onSubmit={handleSubmit}
         />
       )}
+      {item.id === 'gemini_image_gen' && <ImageModel />}
       {isBackgroundEligibleTool(item.id) && (
         <Background
           toolIds={[item.id]}

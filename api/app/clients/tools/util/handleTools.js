@@ -25,6 +25,7 @@ const {
   resolveWebSearchSSRFAgents,
   buildWebSearchDynamicContext,
   codeExecutionAuthHeaders,
+  resolveGeminiImageModel,
   resolveCodeExecutionContext,
 } = require('@librechat/api');
 const {
@@ -180,7 +181,7 @@ const getAuthFields = (toolKey) => {
  * @param {string} params.user
  * @param {Record<string, Record<string, string>>} [object.userMCPAuthMap]
  * @param {AbortSignal} [object.signal]
- * @param {Pick<Agent, 'id' | 'provider' | 'model'>} [params.agent]
+ * @param {Pick<Agent, 'id' | 'provider' | 'model' | 'tool_options'>} [params.agent]
  * @param {string} [params.model]
  * @param {EModelEndpoint} [params.endpoint]
  * @param {LoadToolOptions} [params.options]
@@ -261,6 +262,7 @@ const loadTools = async ({
         imageFiles,
         userId: user,
         fileStrategy,
+        geminiModel: resolveGeminiImageModel(agent?.tool_options),
       });
     },
   };
