@@ -10,10 +10,13 @@ registration:
     - 'publicismpetu.com.uy'
     - 'publicisgroupe.com.uy'
 
+# Con `modelSpecs.enforce` activo, el arranque advierte que estas tres opciones
+# compiten con el menú curado: `modelSelect` reabre el selector crudo, y un
+# preset o un parámetro guardado puede pisar lo que define la spec.
 interface:
-  modelSelect: true
-  parameters: true
-  presets: true
+  modelSelect: false
+  parameters: false
+  presets: false
   agents: true
 
 endpoints:
