@@ -108,20 +108,41 @@ modelSpecs:
         model: claude-opus-5
 
     # `gpt-5.6` pelado no existe en la API: solo las variantes -luna, -sol y
-    # -terra. Terra queda en el mismo escalón de precio que Gemini Pro.
-    - name: gpt
-      label: 'GPT'
-      description: 'Alternativa de OpenAI'
+    # -terra. `-sol` queda fuera porque no tiene tarifa propia — hereda la
+    # genérica de `gpt-5.6` por coincidencia de prefijo, que puede no ser la suya.
+    - name: gpt-rapido
+      label: 'GPT Rápido'
+      description: 'Tareas simples, el más económico de OpenAI'
       iconURL: openAI
       order: 6
       preset:
         endpoint: openAI
+        model: gpt-5.6-luna
+
+    - name: gpt
+      label: 'GPT'
+      description: 'Uso general, equivalente a Gemini Pro'
+      iconURL: openAI
+      order: 7
+      preset:
+        endpoint: openAI
         model: gpt-5.6-terra
+
+    # $10/$50 por 1M: trece veces Gemini Flash en salida. La descripción avisa
+    # del costo para que no sea la opción por reflejo.
+    - name: gpt-maximo
+      label: 'GPT Máximo'
+      description: 'El más capaz de OpenAI, y el más caro del menú'
+      iconURL: openAI
+      order: 8
+      preset:
+        endpoint: openAI
+        model: gpt-6-astra
 
     - name: grok
       label: 'Grok'
       description: 'Segunda opinión, de otro proveedor'
-      order: 7
+      order: 9
       preset:
         endpoint: xAI
         model: grok-4.5
