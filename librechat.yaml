@@ -22,6 +22,25 @@ endpoints:
     titleModel: 'gemini-2.5-flash-lite'
     streamRate: 25
 
+  custom:
+    # Solo los modelos de conversación. Los `grok-imagine-*` de imagen y video
+    # quedan fuera a propósito: LibreChat no tiene herramienta que los use, así
+    # que elegirlos como modelo de chat falla.
+    - name: 'xAI'
+      apiKey: '${XAI_API_KEY}'
+      baseURL: 'https://api.x.ai/v1'
+      modelDisplayLabel: 'Grok'
+      titleConvo: true
+      titleMethod: 'completion'
+      titleModel: 'grok-4.3'
+      models:
+        fetch: false
+        default:
+          - name: grok-4.5
+            description: 'Razonamiento avanzado'
+          - name: grok-4.3
+            description: 'Uso general'
+
 # Lista curada de modelos, al estilo de la app de Gemini: nombre corto y una
 # línea de contexto en vez del identificador crudo del proveedor.
 # `enforce: true` reemplaza la lista larga por esta; `addedEndpoints` mantiene
@@ -59,3 +78,11 @@ modelSpecs:
       preset:
         endpoint: google
         model: gemini-3.1-pro-preview
+
+    - name: grok
+      label: 'Grok'
+      description: 'Segunda opinión, de otro proveedor'
+      order: 4
+      preset:
+        endpoint: xAI
+        model: grok-4.5
