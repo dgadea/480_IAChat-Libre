@@ -10,9 +10,9 @@ registration:
     - 'publicismpetu.com.uy'
     - 'publicisgroupe.com.uy'
 
-# Con `modelSpecs.enforce` activo, el arranque advierte que estas tres opciones
-# compiten con el menú curado: `modelSelect` reabre el selector crudo, y un
-# preset o un parámetro guardado puede pisar lo que define la spec.
+# `modelSelect: false` es lo que oculta el listado crudo de modelos; el menú
+# curado de `modelSpecs` sigue visible. `presets` y `parameters` quedan en false
+# porque un preset o un parámetro guardado puede pisar lo que define una spec.
 interface:
   modelSelect: false
   parameters: false
@@ -46,10 +46,17 @@ endpoints:
 
 # Lista curada de modelos, al estilo de la app de Gemini: nombre corto y una
 # línea de contexto en vez del identificador crudo del proveedor.
-# `enforce: true` reemplaza la lista larga por esta; `addedEndpoints` mantiene
-# los Agentes accesibles desde el mismo menú.
+#
+# `enforce` queda en false a propósito: con true, el servidor rechaza toda
+# petición que no lleve un `spec` (`buildEndpointOption.js:99`), y un agente no
+# lleva ninguno — seleccionarlo devolvía "No model spec selected" y la interfaz
+# se quedaba muda. Quien oculta el listado crudo es `interface.modelSelect`.
+#
+# `softDefault` en vez de `default` por la misma razón: un `default` duro se
+# impone antes de mirar la última selección (`utils/endpoints.ts:435`), así que
+# pisaría el agente elegido al abrir un chat nuevo.
 modelSpecs:
-  enforce: true
+  enforce: false
   prioritize: true
   addedEndpoints:
     - agents
@@ -68,7 +75,7 @@ modelSpecs:
       description: 'Asistencia general'
       iconURL: google
       order: 2
-      default: true
+      softDefault: true
       preset:
         endpoint: google
         model: gemini-3.8-flash
