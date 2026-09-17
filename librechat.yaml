@@ -21,3 +21,41 @@ endpoints:
     titleConvo: true
     titleModel: 'gemini-2.5-flash-lite'
     streamRate: 25
+
+# Lista curada de modelos, al estilo de la app de Gemini: nombre corto y una
+# línea de contexto en vez del identificador crudo del proveedor.
+# `enforce: true` reemplaza la lista larga por esta; `addedEndpoints` mantiene
+# los Agentes accesibles desde el mismo menú.
+modelSpecs:
+  enforce: true
+  prioritize: true
+  addedEndpoints:
+    - agents
+  list:
+    - name: flash-lite
+      label: 'Flash-Lite'
+      description: 'Respuestas rápidas para tareas simples'
+      iconURL: google
+      order: 1
+      preset:
+        endpoint: google
+        model: gemini-3.1-flash-lite
+
+    - name: flash
+      label: 'Flash'
+      description: 'Asistencia general'
+      iconURL: google
+      order: 2
+      default: true
+      preset:
+        endpoint: google
+        model: gemini-3.8-flash
+
+    - name: pro
+      label: 'Pro'
+      description: 'Razonamiento avanzado'
+      iconURL: google
+      order: 3
+      preset:
+        endpoint: google
+        model: gemini-3.1-pro-preview
