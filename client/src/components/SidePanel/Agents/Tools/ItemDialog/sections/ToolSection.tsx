@@ -8,9 +8,9 @@ import type { TError, TPluginAction } from 'librechat-data-provider';
 import type { ToolItem } from '../../items/types';
 import type { AgentForm } from '~/common';
 import PluginAuthForm from '~/components/Plugins/Store/PluginAuthForm';
+import ImageModel, { IMAGE_MODEL_TOOL_IDS } from '../../../ImageModel';
 import { pluginNeedsAuth } from '../../items/auth';
 import Background from '../../../Background';
-import ImageModel from '../../../ImageModel';
 import { useLocalize } from '~/hooks';
 
 interface Props {
@@ -103,7 +103,7 @@ export default function ToolSection({ item }: Props) {
           onSubmit={handleSubmit}
         />
       )}
-      {item.id === 'gemini_image_gen' && <ImageModel />}
+      {IMAGE_MODEL_TOOL_IDS.has(item.id) && <ImageModel toolId={item.id} />}
       {isBackgroundEligibleTool(item.id) && (
         <Background
           toolIds={[item.id]}

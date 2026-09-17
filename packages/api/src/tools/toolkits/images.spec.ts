@@ -1,5 +1,6 @@
 import type { AgentToolOptions } from 'librechat-data-provider';
 import { DEFAULT_GEMINI_IMAGE_MODEL, resolveGeminiImageModel } from './gemini';
+import { DEFAULT_OPENAI_IMAGE_MODEL, resolveOpenAIImageModel } from './oai';
 
 describe('resolveGeminiImageModel', () => {
   const originalModel = process.env.GEMINI_IMAGE_MODEL;
@@ -52,5 +53,38 @@ describe('resolveGeminiImageModel', () => {
       image_gen_oai: { image_model: 'gpt-image-1' },
     };
     expect(resolveGeminiImageModel(toolOptions)).toBe('gemini-3.1-flash-image');
+  });
+});
+
+describe('resolveOpenAIImageModel', () => {
+  const originalModel = process.env.IMAGE_GEN_OAI_MODEL;
+
+  afterEach(() => {
+    if (originalModel === undefined) {
+      delete process.env.IMAGE_GEN_OAI_MODEL;
+      return;
+    }
+    process.env.IMAGE_GEN_OAI_MODEL = originalModel;
+  });
+
+  it('falls back to the built-in default when nothing is configured', () => {
+    delete process.env.IMAGE_GEN_OAI_MODEL;
+    expect(resolveOpenAIImageModel()).toBe(DEFAULT_OPENAI_IMAGE_MODEL);
+  });
+
+  it("prefers the agent's own model over the deployment model", () => {
+    process.env.IMAGE_GEN_OAI_MODEL = 'gpt-image-1';
+    const toolOptions: AgentToolOptions = {
+      image_gen_oai: { image_model: 'gpt-image-2' },
+    };
+    expect(resolveOpenAIImageModel(toolOptions)).toBe('gpt-image-2');
+  });
+
+  it('reads its own tool key, not the Gemini one', () => {
+    process.env.IMAGE_GEN_OAI_MODEL = 'gpt-image-1';
+    const toolOptions: AgentToolOptions = {
+      gemini_image_gen: { image_model: 'gemini-3-pro-image' },
+    };
+    expect(resolveOpenAIImageModel(toolOptions)).toBe('gpt-image-1');
   });
 });

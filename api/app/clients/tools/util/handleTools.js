@@ -26,6 +26,7 @@ const {
   buildWebSearchDynamicContext,
   codeExecutionAuthHeaders,
   resolveGeminiImageModel,
+  resolveOpenAIImageModel,
   resolveCodeExecutionContext,
 } = require('@librechat/api');
 const {
@@ -241,6 +242,7 @@ const loadTools = async ({
         imageOutputType,
         fileStrategy,
         imageFiles,
+        imageModel: resolveOpenAIImageModel(agent?.tool_options),
       });
     },
     gemini_image_gen: async (_toolContextMap, dynamicToolContextMap) => {

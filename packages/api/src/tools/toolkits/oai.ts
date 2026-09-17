@@ -1,4 +1,20 @@
+import type { AgentToolOptions } from 'librechat-data-provider';
 import type { ExtendedJsonSchema } from '../registry/schema';
+import { resolveAgentImageModel } from './images';
+
+/** Model used when neither the agent nor the deployment selects one. */
+export const DEFAULT_OPENAI_IMAGE_MODEL = 'gpt-image-1';
+
+/** Per-agent image model for `image_gen_oai`, falling back to
+ *  `IMAGE_GEN_OAI_MODEL` and then the built-in default. */
+export function resolveOpenAIImageModel(toolOptions?: AgentToolOptions | null): string {
+  return resolveAgentImageModel({
+    toolOptions,
+    toolId: 'image_gen_oai',
+    deploymentModel: process.env.IMAGE_GEN_OAI_MODEL,
+    fallbackModel: DEFAULT_OPENAI_IMAGE_MODEL,
+  });
+}
 
 /** Default descriptions for image generation tool  */
 const DEFAULT_IMAGE_GEN_DESCRIPTION =
