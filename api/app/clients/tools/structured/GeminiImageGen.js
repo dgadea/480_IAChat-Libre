@@ -479,3 +479,4 @@ function createGeminiImageTool(fields = {}) {
 // Export both for compatibility
 module.exports = createGeminiImageTool;
 module.exports.createGeminiImageTool = createGeminiImageTool;
+module.exports.convertImagesToInlineData = convertImagesToInlineData;

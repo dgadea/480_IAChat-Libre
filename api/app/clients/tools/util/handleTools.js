@@ -247,12 +247,24 @@ const loadTools = async ({
         imageModel: resolveOpenAIImageModel(agent?.tool_options),
       });
     },
-    gemini_video_gen: async () => {
+    gemini_video_gen: async (_toolContextMap, dynamicToolContextMap) => {
       const authFields = getAuthFields('gemini_video_gen');
       const authValues = await loadAuthValues({ userId: user, authFields, throwError: false });
+      const imageFiles = options.tool_resources?.[EToolResources.image_edit]?.files ?? [];
+      const toolContext = buildImageToolContext({
+        imageFiles,
+        toolName: 'gemini_video_gen',
+        contextDescription: 'image context',
+      });
+      if (toolContext) {
+        dynamicToolContextMap.gemini_video_gen = toolContext;
+      }
       return createGeminiVideoTool({
         ...authValues,
         isAgent: !!agent,
+        req: options.req,
+        imageFiles,
+        fileStrategy,
         videoModel: resolveGeminiVideoModel(agent?.tool_options),
       });
     },

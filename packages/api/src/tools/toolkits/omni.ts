@@ -41,6 +41,12 @@ const geminiVideoGenJsonSchema: ExtendedJsonSchema = {
       description:
         'A detailed description of the video: subject, action, camera movement, lighting and mood. For an edit, describe only what changes.',
     },
+    image_ids: {
+      type: 'array',
+      items: { type: 'string' },
+      description:
+        'Image ids to animate. One image is the starting reference; two are read as first and last frame, and the video interpolates between them. Omit for text-to-video.',
+    },
     previous_interaction_id: {
       type: 'string',
       description:
@@ -81,6 +87,7 @@ export const omniToolkit: {
 4. aspect_ratio is a required parameter and the only thing that controls orientation. Describing the format inside the prompt has no effect — Stories, Reels and TikTok need aspect_ratio 9:16, everything else 16:9.
 5. Leave resolution at its default while exploring. Only raise it once the user approves a direction, and say that it costs more.
 6. Video is generated with audio. Mention sound in the prompt when it matters.
+7. To animate an image the user supplied, pass its id in image_ids and describe the MOTION — "make it move" wastes a generation, "slow push in while the steam drifts left" does not. Two ids animate from the first frame to the second.
 
 The returned interaction id is what makes conversational editing work — always reuse it rather than starting over.`,
     schema: geminiVideoGenJsonSchema,

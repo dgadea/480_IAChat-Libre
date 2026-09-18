@@ -3,6 +3,7 @@ const { logger } = require('@librechat/data-schemas');
 const { tool } = require('@librechat/agents/langchain/tools');
 const { ContentTypes } = require('librechat-data-provider');
 const { omniToolkit, resolveGeminiVideoModel } = require('@librechat/api');
+const { convertImagesToInlineData } = require('./GeminiImageGen');
 
 const INTERACTIONS_URL = 'https://generativelanguage.googleapis.com/v1beta/interactions';
 
@@ -39,11 +40,11 @@ function createGeminiVideoTool(fields = {}) {
     throw new Error('This tool is only available for agents.');
   }
 
-  const { GEMINI_API_KEY, GOOGLE_KEY } = fields;
+  const { req, imageFiles = [], fileStrategy, GEMINI_API_KEY, GOOGLE_KEY } = fields;
   const videoModel = fields.videoModel || resolveGeminiVideoModel();
 
   const geminiVideoGenTool = tool(
-    async ({ prompt, previous_interaction_id, aspect_ratio, resolution }) => {
+    async ({ prompt, image_ids, previous_interaction_id, aspect_ratio, resolution }) => {
       if (!prompt) {
         throw new Error('Missing required field: prompt');
       }
@@ -61,7 +62,30 @@ function createGeminiVideoTool(fields = {}) {
         ];
       }
 
-      const body = { model: videoModel, input: prompt };
+      /** `input` takes a bare string for text-to-video, or a typed list when
+       *  images come along — one image is a starting reference, two are read as
+       *  first and last frame with the motion interpolated between them. */
+      let input = prompt;
+      if (image_ids?.length) {
+        const inlineImages = await convertImagesToInlineData({
+          imageFiles,
+          image_ids,
+          req,
+          fileStrategy,
+        });
+        if (inlineImages.length) {
+          input = [
+            ...inlineImages.map(({ inlineData }) => ({
+              type: 'image',
+              data: inlineData.data,
+              mime_type: inlineData.mimeType,
+            })),
+            { type: 'text', text: prompt },
+          ];
+        }
+      }
+
+      const body = { model: videoModel, input };
       if (previous_interaction_id) {
         body.previous_interaction_id = previous_interaction_id;
       }

@@ -3384,6 +3384,9 @@ export const imageGenTools = new Set([
   'stable-diffusion',
   'flux',
   'gemini_image_gen',
+  /** Generated video is artifact-first for the same reason: its file cannot be
+   *  attached to an already-saved turn, so backgrounding it would drop the clip. */
+  'gemini_video_gen',
 ]);
 
 /**
