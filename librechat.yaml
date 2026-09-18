@@ -44,8 +44,12 @@ endpoints:
           - name: grok-4.3
             description: 'Uso general'
 
-# Lista curada de modelos, al estilo de la app de Gemini: nombre corto y una
-# línea de contexto en vez del identificador crudo del proveedor.
+# Lista curada de modelos, al estilo de la app de Gemini: el nombre con versión
+# arriba y, debajo, costo relativo más para qué sirve.
+#
+# La escala $/$$/$$$ va sobre el precio de SALIDA por 1M, que es el que domina
+# en chat: $ hasta 4 dólares, $$ hasta 15, $$$ por encima. Si cambian las
+# tarifas del proveedor hay que revisarla — no se calcula sola.
 #
 # `enforce` queda en false a propósito: con true, el servidor rechaza toda
 # petición que no lleve un `spec` (`buildEndpointOption.js:99`), y un agente no
@@ -62,8 +66,8 @@ modelSpecs:
     - agents
   list:
     - name: flash-lite
-      label: 'Gemini Flash-Lite'
-      description: 'gemini-3.1-flash-lite · Respuestas rápidas y económicas'
+      label: 'Gemini 3.1 Flash-Lite'
+      description: '$ · Respuestas rápidas y económicas'
       iconURL: google
       order: 1
       preset:
@@ -71,8 +75,8 @@ modelSpecs:
         model: gemini-3.1-flash-lite
 
     - name: flash
-      label: 'Gemini Flash'
-      description: 'gemini-3.8-flash · Asistencia general'
+      label: 'Gemini 3.8 Flash'
+      description: '$ · Asistencia general'
       iconURL: google
       order: 2
       softDefault: true
@@ -81,8 +85,8 @@ modelSpecs:
         model: gemini-3.8-flash
 
     - name: pro
-      label: 'Gemini Pro'
-      description: 'gemini-3.1-pro-preview · Razonamiento avanzado'
+      label: 'Gemini 3.1 Pro'
+      description: '$$ · Razonamiento avanzado'
       iconURL: google
       order: 3
       preset:
@@ -90,8 +94,8 @@ modelSpecs:
         model: gemini-3.1-pro-preview
 
     - name: claude-sonnet
-      label: 'Claude Sonnet'
-      description: 'claude-sonnet-5 · Redacción y análisis de textos largos'
+      label: 'Claude Sonnet 5'
+      description: '$$ · Redacción y análisis de textos largos'
       iconURL: anthropic
       order: 4
       preset:
@@ -99,8 +103,8 @@ modelSpecs:
         model: claude-sonnet-5
 
     - name: claude-opus
-      label: 'Claude Opus'
-      description: 'claude-opus-5 · Máxima capacidad para trabajo complejo'
+      label: 'Claude Opus 5'
+      description: '$$$ · Máxima capacidad para trabajo complejo'
       iconURL: anthropic
       order: 5
       preset:
@@ -111,8 +115,8 @@ modelSpecs:
     # -terra. `-sol` queda fuera porque no tiene tarifa propia — hereda la
     # genérica de `gpt-5.6` por coincidencia de prefijo, que puede no ser la suya.
     - name: gpt-rapido
-      label: 'GPT Rápido'
-      description: 'gpt-5.6-luna · Tareas simples, el más económico'
+      label: 'GPT 5.6 Luna'
+      description: '$ · Tareas simples, el más económico'
       iconURL: openAI
       order: 6
       preset:
@@ -120,8 +124,8 @@ modelSpecs:
         model: gpt-5.6-luna
 
     - name: gpt
-      label: 'GPT'
-      description: 'gpt-5.6-terra · Uso general'
+      label: 'GPT 5.6 Terra'
+      description: '$$ · Uso general'
       iconURL: openAI
       order: 7
       preset:
@@ -131,8 +135,8 @@ modelSpecs:
     # $10/$50 por 1M: trece veces Gemini Flash en salida. La descripción avisa
     # del costo para que no sea la opción por reflejo.
     - name: gpt-maximo
-      label: 'GPT Máximo'
-      description: 'gpt-6-astra · El más capaz de OpenAI, y el más caro'
+      label: 'GPT 6 Astra'
+      description: '$$$ · El más capaz, y el más caro del menú'
       iconURL: openAI
       order: 8
       preset:
@@ -140,8 +144,8 @@ modelSpecs:
         model: gpt-6-astra
 
     - name: grok
-      label: 'Grok'
-      description: 'grok-4.5 · Segunda opinión, de otro proveedor'
+      label: 'Grok 4.5'
+      description: '$$ · Segunda opinión, de otro proveedor'
       order: 9
       preset:
         endpoint: xAI
