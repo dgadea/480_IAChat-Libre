@@ -9,6 +9,7 @@ const {
   getToolkitKey,
   isToolModuleFile,
   oaiToolkit,
+  omniToolkit,
   geminiToolkit,
   createAskUserQuestionTool,
 } = require('@librechat/api');
@@ -90,6 +91,7 @@ function loadAndFormatTools({ directory, adminFilter = [], adminIncluded = [] })
     new Calculator(),
     createAskUserQuestionTool(),
     ...Object.values(oaiToolkit),
+    ...Object.values(omniToolkit),
     ...Object.values(geminiToolkit),
   ];
   for (const toolInstance of basicToolInstances) {
