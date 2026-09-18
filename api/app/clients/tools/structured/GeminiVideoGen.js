@@ -89,11 +89,15 @@ function createGeminiVideoTool(fields = {}) {
       if (previous_interaction_id) {
         body.previous_interaction_id = previous_interaction_id;
       }
-      if (aspect_ratio) {
-        body.aspect_ratio = aspect_ratio;
-      }
-      if (resolution) {
-        body.response_format = { resolution };
+      /** Both live inside `response_format` alongside `type: 'video'`. At the
+       *  top level the API rejects the request, which is what three failed
+       *  generations reported as an aspect_ratio error. */
+      if (aspect_ratio || resolution) {
+        body.response_format = {
+          type: 'video',
+          ...(aspect_ratio ? { aspect_ratio } : {}),
+          ...(resolution ? { resolution } : {}),
+        };
       }
 
       logger.debug('[GeminiVideoGen] Generating video', {

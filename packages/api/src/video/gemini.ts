@@ -64,11 +64,14 @@ export function createGeminiVideoAdapter(provider: ResolvedVideoProvider): Video
       if (request.previousId) {
         body.previous_interaction_id = request.previousId;
       }
-      if (request.aspectRatio) {
-        body.aspect_ratio = request.aspectRatio;
-      }
-      if (request.resolution) {
-        body.response_format = { resolution: request.resolution };
+      /** Both live inside `response_format` alongside `type: 'video'`; at the
+       *  top level the API rejects the request. */
+      if (request.aspectRatio || request.resolution) {
+        body.response_format = {
+          type: 'video',
+          ...(request.aspectRatio ? { aspect_ratio: request.aspectRatio } : {}),
+          ...(request.resolution ? { resolution: request.resolution } : {}),
+        };
       }
 
       const response = await fetch(`${baseURL}/interactions?key=${provider.apiKey}`, {
