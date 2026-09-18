@@ -65,8 +65,10 @@ endpoints:
 modelSpecs:
   enforce: false
   prioritize: true
-  addedEndpoints:
-    - agents
+  # Sin `addedEndpoints`: la lista no se restringe. Con `['agents']`, agents era
+  # el único que podía pasar el filtro de `useEndpoints.ts`, así que cualquier
+  # motivo para descartarlo dejaba el selector sin ningún endpoint — y sin los
+  # agentes, que es lo que se buscaba conservar.
   list:
     - name: flash-lite
       label: 'Gemini 3.1 Flash-Lite'
