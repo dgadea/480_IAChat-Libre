@@ -49,7 +49,8 @@ const geminiVideoGenJsonSchema: ExtendedJsonSchema = {
     aspect_ratio: {
       type: 'string',
       enum: ['16:9', '9:16'],
-      description: 'Shape of the video. 16:9 is landscape (default), 9:16 is portrait.',
+      description:
+        'Shape of the video, and the ONLY way to set it — writing "vertical" or "9:16" in the prompt does nothing. 16:9 is landscape, 9:16 is portrait. When editing, pass the same value the original used.',
     },
     resolution: {
       type: 'string',
@@ -58,7 +59,7 @@ const geminiVideoGenJsonSchema: ExtendedJsonSchema = {
         'Output resolution. 720p is the default. Higher resolutions cost proportionally more, so only use them once the direction is approved.',
     },
   },
-  required: ['prompt'],
+  required: ['prompt', 'aspect_ratio'],
 };
 
 export const omniToolkit: {
@@ -77,7 +78,7 @@ export const omniToolkit: {
 1. One video per call. Generating a video takes noticeably longer than an image — never call this tool more than once per user request.
 2. Describe the shot the way a director would: subject, action, camera movement, lighting, mood. Vague prompts produce weak footage.
 3. IMPORTANT: when the user asks to change a video you already generated, pass that video's interaction id as \`previous_interaction_id\` and describe ONLY the change. The model preserves everything you do not mention. Do not re-describe the whole scene.
-4. Use aspect_ratio 9:16 for vertical formats and 16:9 for everything else.
+4. aspect_ratio is a required parameter and the only thing that controls orientation. Describing the format inside the prompt has no effect — Stories, Reels and TikTok need aspect_ratio 9:16, everything else 16:9.
 5. Leave resolution at its default while exploring. Only raise it once the user approves a direction, and say that it costs more.
 6. Video is generated with audio. Mention sound in the prompt when it matters.
 

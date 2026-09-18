@@ -36,7 +36,7 @@ const {
 const { processFileCitations } = require('~/server/services/Files/Citations');
 const { processCodeOutput, runPreviewFinalize } = require('~/server/services/Files/Code/process');
 const { preflightCodeOutputBatch } = require('~/server/services/Files/Code/preflight');
-const { saveBase64Image } = require('~/server/services/Files/process');
+const { saveBase64Image, saveBase64Video } = require('~/server/services/Files/process');
 
 function isHostFileAuthoringArtifact(artifact) {
   return artifact?.[HOST_FILE_AUTHORING_ARTIFACT_KEY] === true;
@@ -1073,21 +1073,29 @@ function createToolEndCallback({ req, res, artifactPromises, streamId = null, jo
         if (!part) {
           continue;
         }
-        if (part.type !== 'image_url') {
+        const isVideo = part.type === 'video_url';
+        if (part.type !== 'image_url' && !isVideo) {
           continue;
         }
-        const { url } = part.image_url;
+        const { url } = isVideo ? part.video_url : part.image_url;
         artifactPromises.push(
           (async () => {
-            const filename = `${output.name}_img_${nanoid()}`;
+            const filename = `${output.name}_${isVideo ? 'vid' : 'img'}_${nanoid()}`;
             const file_id = output.artifact.file_ids?.[i];
-            const file = await saveBase64Image(url, {
-              req,
-              file_id,
-              filename,
-              endpoint: metadata.provider,
-              context: FileContext.image_generation,
-            });
+            const file = isVideo
+              ? await saveBase64Video(url, {
+                  req,
+                  file_id,
+                  filename,
+                  context: FileContext.image_generation,
+                })
+              : await saveBase64Image(url, {
+                  req,
+                  file_id,
+                  filename,
+                  endpoint: metadata.provider,
+                  context: FileContext.image_generation,
+                });
             const fileMetadata = Object.assign(file, {
               messageId: metadata.run_id,
               toolCallId: output.tool_call_id,
@@ -1432,21 +1440,29 @@ function createResponsesToolEndCallback({ req, res, tracker, artifactPromises })
         if (!part) {
           continue;
         }
-        if (part.type !== 'image_url') {
+        const isVideo = part.type === 'video_url';
+        if (part.type !== 'image_url' && !isVideo) {
           continue;
         }
-        const { url } = part.image_url;
+        const { url } = isVideo ? part.video_url : part.image_url;
         artifactPromises.push(
           (async () => {
-            const filename = `${output.name}_img_${nanoid()}`;
+            const filename = `${output.name}_${isVideo ? 'vid' : 'img'}_${nanoid()}`;
             const file_id = output.artifact.file_ids?.[i];
-            const file = await saveBase64Image(url, {
-              req,
-              file_id,
-              filename,
-              endpoint: metadata.provider,
-              context: FileContext.image_generation,
-            });
+            const file = isVideo
+              ? await saveBase64Video(url, {
+                  req,
+                  file_id,
+                  filename,
+                  context: FileContext.image_generation,
+                })
+              : await saveBase64Image(url, {
+                  req,
+                  file_id,
+                  filename,
+                  endpoint: metadata.provider,
+                  context: FileContext.image_generation,
+                });
             const fileMetadata = Object.assign(file, {
               toolCallId: output.tool_call_id,
             });

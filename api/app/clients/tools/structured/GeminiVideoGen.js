@@ -1,11 +1,8 @@
 const { v4 } = require('uuid');
 const { logger } = require('@librechat/data-schemas');
 const { tool } = require('@librechat/agents/langchain/tools');
-const { ContentTypes, FileContext } = require('librechat-data-provider');
+const { ContentTypes } = require('librechat-data-provider');
 const { omniToolkit, resolveGeminiVideoModel } = require('@librechat/api');
-const { getStrategyFunctions } = require('~/server/services/Files/strategies');
-const { getFileStrategy } = require('~/server/utils/getFileStrategy');
-const db = require('~/models');
 
 const INTERACTIONS_URL = 'https://generativelanguage.googleapis.com/v1beta/interactions';
 
@@ -42,7 +39,7 @@ function createGeminiVideoTool(fields = {}) {
     throw new Error('This tool is only available for agents.');
   }
 
-  const { req, userId, GEMINI_API_KEY, GOOGLE_KEY } = fields;
+  const { GEMINI_API_KEY, GOOGLE_KEY } = fields;
   const videoModel = fields.videoModel || resolveGeminiVideoModel();
 
   const geminiVideoGenTool = tool(
@@ -111,51 +108,14 @@ function createGeminiVideoTool(fields = {}) {
         ];
       }
 
-      const buffer = Buffer.from(video.data, 'base64');
+      /** Handed over as a data URL: the agent artifact pipeline is what stores
+       *  generated media and emits the attachment (`callbacks.js`), and a tool
+       *  that saves the file itself leaves an unfetchable path in the message
+       *  that the next model call then chokes on. */
       const file_id = v4();
-      const fileName = `${file_id}.mp4`;
-      const fileStrategy = fields.fileStrategy ?? getFileStrategy(req?.config);
+      const dataUrl = `data:${video.mimeType};base64,${video.data}`;
 
-      let filepath;
-      try {
-        const { saveBuffer } = getStrategyFunctions(fileStrategy);
-        /** `images` despite being a video: it is the statically served bucket,
-         *  while `uploads` is only reachable through the download API and a
-         *  `<video src>` cannot load from there. */
-        filepath = await saveBuffer({ userId, buffer, fileName, basePath: 'images' });
-      } catch (error) {
-        logger.error('[GeminiVideoGen] Failed to store video:', error);
-        return [
-          [
-            {
-              type: ContentTypes.TEXT,
-              text: `The video was generated but could not be stored: ${error.message}`,
-            },
-          ],
-          { content: [], file_ids: [] },
-        ];
-      }
-
-      try {
-        await db.createFile(
-          {
-            user: userId,
-            file_id,
-            bytes: buffer.length,
-            filepath,
-            filename: fileName,
-            source: fileStrategy,
-            type: video.mimeType,
-            context: FileContext.image_generation,
-            tenantId: req?.user?.tenantId,
-          },
-          true,
-        );
-      } catch (error) {
-        logger.warn('[GeminiVideoGen] Failed to record video file metadata:', error);
-      }
-
-      const content = [{ type: ContentTypes.VIDEO_URL, video_url: { url: filepath } }];
+      const content = [{ type: ContentTypes.VIDEO_URL, video_url: { url: dataUrl } }];
 
       /** The interaction id is what makes the next turn an edit rather than a
        *  fresh generation, so it has to reach the model in the text it reads. */

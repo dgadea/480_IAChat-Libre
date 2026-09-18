@@ -4,9 +4,15 @@ import FileContainer from '~/components/Chat/Input/Files/FileContainer';
 import { usesImagePreview, hydrateFileDeliveryMetadata } from '~/utils';
 import { useFileMapContext, useShareContext } from '~/Providers';
 import FilePreviewDialog from './FilePreviewDialog';
+import { useLocalize } from '~/hooks';
 import Image from './Image';
 
+/** Generated clips arrive as ordinary attachments; played inline they read as
+ *  part of the answer rather than a file to go open. */
+const isVideoFile = (file: Partial<TFile>): boolean => file.type?.startsWith('video/') === true;
+
 const Files = ({ message }: { message?: TMessage }) => {
+  const localize = useLocalize();
   const fileMap = useFileMapContext();
   const { shareId } = useShareContext();
   const files = useMemo(
@@ -17,8 +23,12 @@ const Files = ({ message }: { message?: TMessage }) => {
     return files?.filter(usesImagePreview) || [];
   }, [files]);
 
+  const videoFiles = useMemo(() => {
+    return files?.filter(isVideoFile) || [];
+  }, [files]);
+
   const otherFiles = useMemo(() => {
-    return files?.filter((file) => !usesImagePreview(file)) || [];
+    return files?.filter((file) => !usesImagePreview(file) && !isVideoFile(file)) || [];
   }, [files]);
 
   const [selectedFile, setSelectedFile] = useState<Partial<TFile> | null>(null);
@@ -37,6 +47,20 @@ const Files = ({ message }: { message?: TMessage }) => {
             key={file.file_id}
             file={file as TFile}
             onClick={() => setSelectedFile(file)}
+          />
+        ))}
+      {videoFiles.length > 0 &&
+        videoFiles.map((file) => (
+          /* The provider returns audio but no caption track, and a decorative
+             empty <track> would claim captions exist. */
+          // eslint-disable-next-line jsx-a11y/media-has-caption
+          <video
+            key={file.file_id}
+            controls
+            preload="metadata"
+            src={file.preview ?? file.filepath ?? ''}
+            className="my-2 h-auto w-full max-w-lg rounded-lg"
+            aria-label={file.filename ?? localize('com_ui_generated_video')}
           />
         ))}
       {imageFiles.length > 0 &&

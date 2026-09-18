@@ -253,9 +253,6 @@ const loadTools = async ({
       return createGeminiVideoTool({
         ...authValues,
         isAgent: !!agent,
-        req: options.req,
-        userId: user,
-        fileStrategy,
         videoModel: resolveGeminiVideoModel(agent?.tool_options),
       });
     },

@@ -1646,6 +1646,65 @@ async function saveBase64Image(
 }
 
 /**
+ * Stores a generated video from a base64 data URL and records its file metadata.
+ *
+ * The image counterpart runs the bytes through sharp; video has no such step, so
+ * the declared type is the type, and `images` is the base path because it is the
+ * statically served one — `uploads` is reachable only through the download API,
+ * which no `<video src>` can use.
+ *
+ * @param {string} url - `data:video/mp4;base64,...`
+ * @param {object} params
+ * @param {ServerRequest} params.req
+ * @param {string} [params.file_id]
+ * @param {string} params.filename
+ * @param {FileContext} params.context
+ * @returns {Promise<MongoFile>}
+ */
+async function saveBase64Video(url, { req, file_id: _file_id, filename: _filename, context }) {
+  const retentionExpiryPromise = getRetentionExpiry(req);
+  const appConfig = req.config;
+  const file_id = _file_id ?? v4();
+  const { buffer, type: declaredType } = base64ToBuffer(url);
+  const type = declaredType || 'video/mp4';
+
+  let filename = `${file_id}-${_filename}`;
+  if (!path.extname(filename)) {
+    const extension = mime.getExtension(type);
+    if (!extension) {
+      throw new Error(`Could not determine file extension from MIME type: ${type}`);
+    }
+    filename += `.${extension}`;
+  }
+
+  const source = getFileStrategy(appConfig, { isImage: true });
+  const { saveBuffer } = getStrategyFunctions(source);
+  const filepath = await saveBuffer({
+    userId: req.user.id,
+    fileName: filename,
+    buffer,
+    tenantId: req.user.tenantId,
+  });
+  const storageMetadata = getStorageMetadata({ filepath, source });
+  return await db.createFile(
+    {
+      type,
+      source,
+      context,
+      file_id,
+      filepath,
+      ...storageMetadata,
+      filename,
+      user: req.user.id,
+      bytes: buffer.length,
+      ...(await retentionExpiryPromise),
+      tenantId: req.user.tenantId,
+    },
+    true,
+  );
+}
+
+/**
  * Filters a file based on its size and the endpoint origin.
  *
  * @param {Object} params - The parameters for the function.
@@ -1751,6 +1810,7 @@ module.exports = {
   filterFile,
   processFileURL,
   saveBase64Image,
+  saveBase64Video,
   processImageFile,
   uploadImageBuffer,
   sweepExpiredFiles,
