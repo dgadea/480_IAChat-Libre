@@ -1,5 +1,6 @@
 import type { AgentToolOptions } from 'librechat-data-provider';
 import { DEFAULT_GEMINI_IMAGE_MODEL, resolveGeminiImageModel } from './gemini';
+import { DEFAULT_GEMINI_VIDEO_MODEL, resolveGeminiVideoModel } from './omni';
 import { DEFAULT_OPENAI_IMAGE_MODEL, resolveOpenAIImageModel } from './oai';
 
 describe('resolveGeminiImageModel', () => {
@@ -86,5 +87,39 @@ describe('resolveOpenAIImageModel', () => {
       gemini_image_gen: { image_model: 'gemini-3-pro-image' },
     };
     expect(resolveOpenAIImageModel(toolOptions)).toBe('gpt-image-1');
+  });
+});
+
+describe('resolveGeminiVideoModel', () => {
+  const originalModel = process.env.GEMINI_VIDEO_MODEL;
+
+  afterEach(() => {
+    if (originalModel === undefined) {
+      delete process.env.GEMINI_VIDEO_MODEL;
+      return;
+    }
+    process.env.GEMINI_VIDEO_MODEL = originalModel;
+  });
+
+  it('falls back to the built-in default when nothing is configured', () => {
+    delete process.env.GEMINI_VIDEO_MODEL;
+    expect(resolveGeminiVideoModel()).toBe(DEFAULT_GEMINI_VIDEO_MODEL);
+  });
+
+  it("prefers the agent's own model over the deployment model", () => {
+    process.env.GEMINI_VIDEO_MODEL = 'gemini-omni-1.1-flash';
+    const toolOptions: AgentToolOptions = {
+      gemini_video_gen: { image_model: 'gemini-omni-flash-preview' },
+    };
+    expect(resolveGeminiVideoModel(toolOptions)).toBe('gemini-omni-flash-preview');
+  });
+
+  it("does not read the image tools' keys", () => {
+    process.env.GEMINI_VIDEO_MODEL = 'gemini-omni-1.1-flash';
+    const toolOptions: AgentToolOptions = {
+      gemini_image_gen: { image_model: 'gemini-3-pro-image' },
+      image_gen_oai: { image_model: 'gpt-image-2.5-flare' },
+    };
+    expect(resolveGeminiVideoModel(toolOptions)).toBe('gemini-omni-1.1-flash');
   });
 });

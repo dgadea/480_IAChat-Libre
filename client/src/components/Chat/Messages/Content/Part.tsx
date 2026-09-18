@@ -35,6 +35,7 @@ import RetrievalCall from './RetrievalCall';
 import ToolApproval from './ToolApproval';
 import AgentHandoff from './AgentHandoff';
 import CodeAnalyze from './CodeAnalyze';
+import { useLocalize } from '~/hooks';
 import Container from './Container';
 import WebSearch from './WebSearch';
 import ToolCall from './ToolCall';
@@ -61,6 +62,7 @@ const Part = memo(function Part({
   hideAttachments,
   onToolExpand,
 }: PartProps) {
+  const localize = useLocalize();
   if (!part) {
     return null;
   }
@@ -504,6 +506,24 @@ const Part = memo(function Part({
         />
       );
     }
+  } else if (part.type === ContentTypes.VIDEO_URL) {
+    const url = part[ContentTypes.VIDEO_URL]?.url;
+    if (!url) {
+      return null;
+    }
+    return (
+      /* The provider returns video with audio but no caption track, and there is
+         nothing to transcribe from until it does — a decorative empty <track>
+         would claim captions exist. Revisit if the API starts returning one. */
+      // eslint-disable-next-line jsx-a11y/media-has-caption
+      <video
+        controls
+        preload="metadata"
+        src={url}
+        className="my-2 h-auto w-full max-w-lg rounded-lg"
+        aria-label={localize('com_ui_generated_video')}
+      />
+    );
   } else if (part.type === ContentTypes.IMAGE_FILE) {
     const imageFile = part[ContentTypes.IMAGE_FILE];
     const cached = imageFile.file_id ? getCachedPreview(imageFile.file_id) : undefined;

@@ -2,6 +2,7 @@ import { WebSearchToolDefinition, CalculatorToolDefinition } from '@librechat/ag
 import type { ExtendedJsonSchema } from './schema';
 import { AskUserQuestionToolDefinition } from '~/agents/hitl/askUserQuestionTool';
 import { geminiToolkit } from '~/tools/toolkits/gemini';
+import { omniToolkit } from '~/tools/toolkits/omni';
 import { oaiToolkit } from '~/tools/toolkits/oai';
 
 export type { ExtendedJsonSchema } from './schema';
@@ -421,6 +422,13 @@ export const toolDefinitions: Record<string, ToolRegistryDefinition> = {
     schema: geminiToolkit.gemini_image_gen.schema,
     toolType: 'builtin',
     responseFormat: geminiToolkit.gemini_image_gen.responseFormat,
+  },
+  gemini_video_gen: {
+    name: omniToolkit.gemini_video_gen.name,
+    description: omniToolkit.gemini_video_gen.description,
+    schema: omniToolkit.gemini_video_gen.schema,
+    toolType: 'builtin',
+    responseFormat: omniToolkit.gemini_video_gen.responseFormat,
   },
 };
 

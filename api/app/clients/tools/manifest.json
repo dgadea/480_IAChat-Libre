@@ -173,5 +173,19 @@
         "optional": true
       }
     ]
+  },
+  {
+    "name": "Gemini Video Tools",
+    "pluginKey": "gemini_video_gen",
+    "description": "Generate and conversationally edit short videos with audio using Google's Gemini Omni models.",
+    "icon": "assets/gemini_image_gen.svg",
+    "authConfig": [
+      {
+        "authField": "GEMINI_API_KEY||GOOGLE_KEY",
+        "label": "Gemini API Key (optional)",
+        "description": "Your Google Gemini API Key from <a href='https://aistudio.google.com/app/apikey' target='_blank'>Google AI Studio</a>. Leave blank to reuse the key configured for the Google endpoint.",
+        "optional": true
+      }
+    ]
   }
 ]

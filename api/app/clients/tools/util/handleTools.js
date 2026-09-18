@@ -26,6 +26,7 @@ const {
   buildWebSearchDynamicContext,
   codeExecutionAuthHeaders,
   resolveGeminiImageModel,
+  resolveGeminiVideoModel,
   resolveOpenAIImageModel,
   resolveCodeExecutionContext,
 } = require('@librechat/api');
@@ -53,6 +54,7 @@ const {
   StructuredWolfram,
   TavilySearchResults,
   createGeminiImageTool,
+  createGeminiVideoTool,
   createOpenAIImageTools,
 } = require('../');
 const {
@@ -243,6 +245,18 @@ const loadTools = async ({
         fileStrategy,
         imageFiles,
         imageModel: resolveOpenAIImageModel(agent?.tool_options),
+      });
+    },
+    gemini_video_gen: async () => {
+      const authFields = getAuthFields('gemini_video_gen');
+      const authValues = await loadAuthValues({ userId: user, authFields, throwError: false });
+      return createGeminiVideoTool({
+        ...authValues,
+        isAgent: !!agent,
+        req: options.req,
+        userId: user,
+        fileStrategy,
+        videoModel: resolveGeminiVideoModel(agent?.tool_options),
       });
     },
     gemini_image_gen: async (_toolContextMap, dynamicToolContextMap) => {
