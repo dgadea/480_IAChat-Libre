@@ -63,7 +63,7 @@ modelSpecs:
   list:
     - name: flash-lite
       label: 'Gemini Flash-Lite'
-      description: 'Respuestas rápidas para tareas simples'
+      description: 'gemini-3.1-flash-lite · Respuestas rápidas y económicas'
       iconURL: google
       order: 1
       preset:
@@ -72,7 +72,7 @@ modelSpecs:
 
     - name: flash
       label: 'Gemini Flash'
-      description: 'Asistencia general'
+      description: 'gemini-3.8-flash · Asistencia general'
       iconURL: google
       order: 2
       softDefault: true
@@ -82,7 +82,7 @@ modelSpecs:
 
     - name: pro
       label: 'Gemini Pro'
-      description: 'Razonamiento avanzado'
+      description: 'gemini-3.1-pro-preview · Razonamiento avanzado'
       iconURL: google
       order: 3
       preset:
@@ -91,7 +91,7 @@ modelSpecs:
 
     - name: claude-sonnet
       label: 'Claude Sonnet'
-      description: 'Redacción y análisis de textos largos'
+      description: 'claude-sonnet-5 · Redacción y análisis de textos largos'
       iconURL: anthropic
       order: 4
       preset:
@@ -100,7 +100,7 @@ modelSpecs:
 
     - name: claude-opus
       label: 'Claude Opus'
-      description: 'Máxima capacidad para trabajo complejo'
+      description: 'claude-opus-5 · Máxima capacidad para trabajo complejo'
       iconURL: anthropic
       order: 5
       preset:
@@ -112,7 +112,7 @@ modelSpecs:
     # genérica de `gpt-5.6` por coincidencia de prefijo, que puede no ser la suya.
     - name: gpt-rapido
       label: 'GPT Rápido'
-      description: 'Tareas simples, el más económico de OpenAI'
+      description: 'gpt-5.6-luna · Tareas simples, el más económico'
       iconURL: openAI
       order: 6
       preset:
@@ -121,7 +121,7 @@ modelSpecs:
 
     - name: gpt
       label: 'GPT'
-      description: 'Uso general, equivalente a Gemini Pro'
+      description: 'gpt-5.6-terra · Uso general'
       iconURL: openAI
       order: 7
       preset:
@@ -132,7 +132,7 @@ modelSpecs:
     # del costo para que no sea la opción por reflejo.
     - name: gpt-maximo
       label: 'GPT Máximo'
-      description: 'El más capaz de OpenAI, y el más caro del menú'
+      description: 'gpt-6-astra · El más capaz de OpenAI, y el más caro'
       iconURL: openAI
       order: 8
       preset:
@@ -141,7 +141,7 @@ modelSpecs:
 
     - name: grok
       label: 'Grok'
-      description: 'Segunda opinión, de otro proveedor'
+      description: 'grok-4.5 · Segunda opinión, de otro proveedor'
       order: 9
       preset:
         endpoint: xAI
