@@ -1573,10 +1573,15 @@ async function retrieveAndProcessFile({
  */
 function base64ToBuffer(base64String) {
   try {
-    const typeMatch = base64String.match(/^data:([A-Za-z-+/]+);base64,/);
+    /** Digits and dots belong in a media type — `video/mp4`, `audio/mp3`,
+     *  `image/vnd.microsoft.icon`. A class without them fails to match, the
+     *  prefix survives the replace, and `data:video/mp4;base64,` gets decoded
+     *  as if it were leading bytes of the file, shifting everything after it. */
+    const dataUrlPrefix = /^data:([a-zA-Z0-9][\w.+-]*\/[\w.+-]+);base64,/;
+    const typeMatch = base64String.match(dataUrlPrefix);
     const type = typeMatch ? typeMatch[1] : '';
 
-    const base64Data = base64String.replace(/^data:([A-Za-z-+/]+);base64,/, '');
+    const base64Data = base64String.replace(dataUrlPrefix, '');
 
     if (!base64Data) {
       throw new Error('Invalid base64 string');
@@ -1811,6 +1816,7 @@ module.exports = {
   processFileURL,
   saveBase64Image,
   saveBase64Video,
+  base64ToBuffer,
   processImageFile,
   uploadImageBuffer,
   sweepExpiredFiles,
