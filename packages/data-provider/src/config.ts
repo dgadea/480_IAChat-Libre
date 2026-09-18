@@ -2568,6 +2568,31 @@ export const transactionsSchema = z.object({
 
 export const DEFAULT_MEMORY_MAX_INPUT_TOKENS = 12000;
 
+/** Adapters implemented in `packages/api/src/video`. Adding a provider means
+ *  writing one adapter and naming it here — not branching inside shared code. */
+export const videoAdapterSchema = z.enum(['gemini_omni']);
+
+export const videoModelSchema = z.object({
+  name: z.string(),
+  /** Shown to the operator and to the model when it picks between models. */
+  description: z.string().optional(),
+});
+
+export const videoProviderSchema = z.object({
+  adapter: videoAdapterSchema,
+  apiKey: z.string().optional(),
+  baseURL: z.string().optional(),
+  models: z.array(videoModelSchema).min(1),
+});
+
+export const videoGenerationSchema = z.object({
+  /** Provider used when neither the agent nor the request names one. */
+  default: z.string().optional(),
+  providers: z.record(videoProviderSchema),
+});
+
+export type TVideoGenerationConfig = z.infer<typeof videoGenerationSchema>;
+
 export const memorySchema = z.object({
   disabled: z.boolean().optional(),
   validKeys: z.array(z.string()).optional(),
@@ -2854,6 +2879,7 @@ export const configSchema = z.object({
   webSearch: webSearchSchema.optional(),
   langfuse: langfuseConfigSchema.optional(),
   memory: memorySchema.optional(),
+  videoGeneration: videoGenerationSchema.optional(),
   summarization: summarizationConfigSchema.optional(),
   skillSync: skillSyncConfigSchema,
   secureImageLinks: z.boolean().optional(),

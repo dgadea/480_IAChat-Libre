@@ -96,6 +96,7 @@ export * from './images';
 export * from './storage';
 /* Tools */
 export * from './tools';
+export * from './video';
 /* web search */
 export * from './web';
 /* Langfuse */
