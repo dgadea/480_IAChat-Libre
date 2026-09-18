@@ -10,11 +10,14 @@ registration:
     - 'publicismpetu.com.uy'
     - 'publicisgroupe.com.uy'
 
-# `modelSelect: false` es lo que oculta el listado crudo de modelos; el menú
-# curado de `modelSpecs` sigue visible. `presets` y `parameters` quedan en false
-# porque un preset o un parámetro guardado puede pisar lo que define una spec.
+# `modelSelect: false` oculta el listado crudo, pero también vacía la lista de
+# endpoints entera (`useEndpoints.ts:96` corta antes de mirar `addedEndpoints`),
+# y con ella desaparecen los Agentes del selector. Queda en true para que sean
+# alcanzables; lo que mantiene el menú corto es podar los modelos de cada
+# proveedor. `presets` y `parameters` siguen en false porque un preset o un
+# parámetro guardado puede pisar lo que define una spec.
 interface:
-  modelSelect: false
+  modelSelect: true
   parameters: false
   presets: false
   agents: true
