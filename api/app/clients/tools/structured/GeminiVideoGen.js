@@ -119,7 +119,10 @@ function createGeminiVideoTool(fields = {}) {
       let filepath;
       try {
         const { saveBuffer } = getStrategyFunctions(fileStrategy);
-        filepath = await saveBuffer({ userId, buffer, fileName, basePath: 'uploads' });
+        /** `images` despite being a video: it is the statically served bucket,
+         *  while `uploads` is only reachable through the download API and a
+         *  `<video src>` cannot load from there. */
+        filepath = await saveBuffer({ userId, buffer, fileName, basePath: 'images' });
       } catch (error) {
         logger.error('[GeminiVideoGen] Failed to store video:', error);
         return [
