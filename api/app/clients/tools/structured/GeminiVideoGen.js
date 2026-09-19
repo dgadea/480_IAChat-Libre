@@ -73,6 +73,24 @@ function createGeminiVideoTool(fields = {}) {
           req,
           fileStrategy,
         });
+        if (inlineImages.length < image_ids.length) {
+          /** The converter logs and skips an image it cannot read, so without
+           *  this the clip generates from the prompt alone and silently ignores
+           *  the reference — a paid generation that answers a different brief. */
+          logger.error('[GeminiVideoGen] Could not load reference images', {
+            requested: image_ids.length,
+            loaded: inlineImages.length,
+          });
+          return [
+            [
+              {
+                type: ContentTypes.TEXT,
+                text: `Could not load ${image_ids.length - inlineImages.length} of the ${image_ids.length} reference image(s). No video was generated — generating without the reference would have produced an unrelated clip. Ask the user to re-upload the image.`,
+              },
+            ],
+            { content: [], file_ids: [] },
+          ];
+        }
         if (inlineImages.length) {
           input = [
             ...inlineImages.map(({ inlineData }) => ({
