@@ -1,6 +1,8 @@
 import type { AgentToolOptions, TToolSettings } from 'librechat-data-provider';
+import type { VideoTreatment, VideoSound } from '../../video/direction';
 import type { VideoAdapterCapabilities } from '../../video/types';
 import type { ExtendedJsonSchema } from '../registry/schema';
+import { VIDEO_TREATMENTS, VIDEO_SOUND } from '../../video/direction';
 import { GEMINI_CAPABILITIES } from '../../video/gemini';
 import { resolveAgentImageModel } from './images';
 
@@ -27,6 +29,9 @@ export type GeminiVideoResolution = (typeof GEMINI_VIDEO_RESOLUTIONS)[number];
 export interface GeminiVideoParams {
   aspect_ratio?: GeminiVideoAspectRatio;
   resolution?: GeminiVideoResolution;
+  /** Creative direction folded into the prompt, not an API argument. */
+  treatment?: VideoTreatment;
+  sound?: VideoSound;
 }
 
 const isAspectRatio = (value?: string): value is GeminiVideoAspectRatio =>
@@ -34,6 +39,11 @@ const isAspectRatio = (value?: string): value is GeminiVideoAspectRatio =>
 
 const isResolution = (value?: string): value is GeminiVideoResolution =>
   GEMINI_VIDEO_RESOLUTIONS.includes(value as GeminiVideoResolution);
+
+const isTreatment = (value?: string): value is VideoTreatment =>
+  VIDEO_TREATMENTS.includes(value as VideoTreatment);
+
+const isSound = (value?: string): value is VideoSound => VIDEO_SOUND.includes(value as VideoSound);
 
 /**
  * Video settings that override what the model asks for on this one call.
@@ -57,10 +67,14 @@ export function resolveGeminiVideoParams({
 
   const aspectRatio = fromRequest?.aspect_ratio?.trim() || fromAgent?.aspect_ratio?.trim();
   const resolution = fromRequest?.resolution?.trim() || fromAgent?.resolution?.trim();
+  const treatment = fromRequest?.treatment?.trim() || fromAgent?.treatment?.trim();
+  const sound = fromRequest?.sound?.trim() || fromAgent?.sound?.trim();
 
   return {
     ...(isAspectRatio(aspectRatio) ? { aspect_ratio: aspectRatio } : {}),
     ...(isResolution(resolution) ? { resolution } : {}),
+    ...(isTreatment(treatment) ? { treatment } : {}),
+    ...(isSound(sound) ? { sound } : {}),
   };
 }
 

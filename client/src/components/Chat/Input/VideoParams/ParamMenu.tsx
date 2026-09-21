@@ -13,6 +13,9 @@ interface ParamMenuProps<T extends string> {
   value: T;
   options: readonly T[];
   onChange: (value: T) => void;
+  /** Reads a value for display; values like `motion_graphics` are identifiers,
+   *  not labels. Defaults to the value itself for the already-readable ones. */
+  getLabel?: (value: T) => string;
   testId?: string;
 }
 
@@ -28,6 +31,7 @@ function ParamMenuComponent<T extends string>({
   value,
   options,
   onChange,
+  getLabel = (option: T) => option,
   testId,
 }: ParamMenuProps<T>) {
   const menuStore = Ariakit.useMenuStore({ focusLoop: true });
@@ -41,7 +45,7 @@ function ParamMenuComponent<T extends string>({
         render={
           <Ariakit.MenuButton
             data-testid={testId}
-            aria-label={`${label}: ${value}`}
+            aria-label={`${label}: ${getLabel(value)}`}
             className={cn(
               composerControlClasses(),
               'min-w-0 max-w-full px-2.5 md:px-theme-normal',
@@ -51,7 +55,7 @@ function ParamMenuComponent<T extends string>({
         }
       >
         <Icon className="size-4 shrink-0 text-text-secondary" aria-hidden="true" />
-        <span className="min-w-0 truncate">{value}</span>
+        <span className="min-w-0 truncate">{getLabel(value)}</span>
         <ChevronDown
           className={cn(
             'size-3 shrink-0 text-text-secondary transition-transform',
@@ -94,7 +98,7 @@ function ParamMenuComponent<T extends string>({
               option === value && 'bg-surface-active-alt',
             )}
           >
-            {option}
+            {getLabel(option)}
           </Ariakit.MenuItemRadio>
         ))}
       </Ariakit.Menu>

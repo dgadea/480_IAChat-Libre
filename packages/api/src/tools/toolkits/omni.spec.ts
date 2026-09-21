@@ -107,3 +107,38 @@ describe('buildVideoGenSchema', () => {
     expect(properties({ ...GEMINI_CAPABILITIES, resolutions: [] })).not.toContain('resolution');
   });
 });
+
+describe('resolveGeminiVideoParams — creative direction', () => {
+  it('omits direction the user did not choose', () => {
+    expect(
+      resolveGeminiVideoParams({
+        requestParams: { gemini_video_gen: { aspect_ratio: '16:9' } },
+      }),
+    ).toEqual({ aspect_ratio: '16:9' });
+  });
+
+  it('carries treatment and sound through', () => {
+    expect(
+      resolveGeminiVideoParams({
+        requestParams: { gemini_video_gen: { treatment: '3d', sound: 'silent' } },
+      }),
+    ).toEqual({ treatment: '3d', sound: 'silent' });
+  });
+
+  it('drops direction outside the known sets', () => {
+    expect(
+      resolveGeminiVideoParams({
+        requestParams: { gemini_video_gen: { treatment: 'claymation', sound: 'surround' } },
+      }),
+    ).toEqual({});
+  });
+
+  it('lets the request override the agent for direction too', () => {
+    expect(
+      resolveGeminiVideoParams({
+        toolOptions: { gemini_video_gen: { treatment: 'live_action', sound: 'music' } },
+        requestParams: { gemini_video_gen: { treatment: 'animation' } },
+      }),
+    ).toEqual({ treatment: 'animation', sound: 'music' });
+  });
+});

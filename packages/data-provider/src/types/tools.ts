@@ -127,6 +127,14 @@ export type ToolOptions = {
    * composer's controls. Consumed by `gemini_video_gen`.
    */
   resolution?: string;
+  /**
+   * Default treatment for this agent's video — live action, animation, 3D or
+   * motion graphics. Unlike shape and resolution this is folded into the
+   * prompt, because no provider exposes it as an argument.
+   */
+  treatment?: string;
+  /** Default sound direction for this agent's video, likewise folded into the prompt. */
+  sound?: string;
 };
 
 /**

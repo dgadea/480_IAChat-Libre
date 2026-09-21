@@ -1,19 +1,22 @@
-import { memo, useCallback } from 'react';
+import { memo, useCallback, useMemo } from 'react';
 import { useAtom } from 'jotai';
-import { RectangleHorizontal, Monitor } from 'lucide-react';
-import type { AspectRatio, Resolution } from './state';
-import { ASPECT_RATIOS, RESOLUTIONS, videoParamsAtom } from './state';
+import { RectangleHorizontal, Monitor, Clapperboard, Volume2 } from 'lucide-react';
+import type { AspectRatio, Resolution, Treatment, Sound } from './state';
+import { ASPECT_RATIOS, RESOLUTIONS, TREATMENTS, SOUNDS, videoParamsAtom } from './state';
 import useHasVideoTool from './useHasVideoTool';
 import { useLocalize } from '~/hooks';
 import ParamMenu from './ParamMenu';
 
 /**
- * Format and resolution for the next video generation, chosen in the composer
- * rather than described in the prompt. Both are sent with the request and take
- * precedence over what the model asks for, so the shot comes out in the shape
- * the user selected regardless of how the prompt is worded.
+ * Direction for the next video generation, chosen in the composer rather than
+ * described in the prompt.
  *
- * Renders nothing unless the conversation's agent can generate video — format
+ * Shape and resolution are API arguments and take precedence over what the
+ * model asks for. Treatment and sound are appended to the prompt instead — no
+ * provider exposes a field for either — so they are direction the renderer
+ * reads rather than a setting it enforces.
+ *
+ * Renders nothing unless the conversation's agent can generate video: format
  * pickers on a plain chat would promise something the turn cannot do.
  */
 function VideoParams() {
@@ -28,6 +31,35 @@ function VideoParams() {
   const setResolution = useCallback(
     (resolution: Resolution) => setParams((prev) => ({ ...prev, resolution })),
     [setParams],
+  );
+  const setTreatment = useCallback(
+    (treatment: Treatment) => setParams((prev) => ({ ...prev, treatment })),
+    [setParams],
+  );
+  const setSound = useCallback(
+    (sound: Sound) => setParams((prev) => ({ ...prev, sound })),
+    [setParams],
+  );
+
+  const treatmentLabels = useMemo<Record<Treatment, string>>(
+    () => ({
+      auto: localize('com_ui_video_auto'),
+      live_action: localize('com_ui_video_treatment_live_action'),
+      animation: localize('com_ui_video_treatment_animation'),
+      '3d': localize('com_ui_video_treatment_3d'),
+      motion_graphics: localize('com_ui_video_treatment_motion_graphics'),
+    }),
+    [localize],
+  );
+
+  const soundLabels = useMemo<Record<Sound, string>>(
+    () => ({
+      auto: localize('com_ui_video_auto'),
+      ambient: localize('com_ui_video_sound_ambient'),
+      music: localize('com_ui_video_sound_music'),
+      silent: localize('com_ui_video_sound_silent'),
+    }),
+    [localize],
   );
 
   if (!hasVideoTool) {
@@ -53,6 +85,26 @@ function VideoParams() {
         value={params.resolution}
         options={RESOLUTIONS}
         onChange={setResolution}
+      />
+      <ParamMenu
+        name="videoTreatment"
+        testId="video-treatment"
+        label={localize('com_ui_video_treatment')}
+        icon={Clapperboard}
+        value={params.treatment}
+        options={TREATMENTS}
+        onChange={setTreatment}
+        getLabel={(option) => treatmentLabels[option]}
+      />
+      <ParamMenu
+        name="videoSound"
+        testId="video-sound"
+        label={localize('com_ui_video_sound')}
+        icon={Volume2}
+        value={params.sound}
+        options={SOUNDS}
+        onChange={setSound}
+        getLabel={(option) => soundLabels[option]}
       />
     </>
   );

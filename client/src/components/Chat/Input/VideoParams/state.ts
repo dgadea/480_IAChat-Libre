@@ -6,12 +6,21 @@ export const VIDEO_TOOL_ID = 'gemini_video_gen';
 export const ASPECT_RATIOS = ['16:9', '9:16'] as const;
 export const RESOLUTIONS = ['360p', '720p', '1080p', '4k'] as const;
 
+/** `auto` is the absence of a preference, not a value: it is dropped before the
+ *  request so an untouched control adds nothing to the prompt. */
+export const TREATMENTS = ['auto', 'live_action', 'animation', '3d', 'motion_graphics'] as const;
+export const SOUNDS = ['auto', 'ambient', 'music', 'silent'] as const;
+
 export type AspectRatio = (typeof ASPECT_RATIOS)[number];
 export type Resolution = (typeof RESOLUTIONS)[number];
+export type Treatment = (typeof TREATMENTS)[number];
+export type Sound = (typeof SOUNDS)[number];
 
 export interface VideoParamsState {
   aspect_ratio: AspectRatio;
   resolution: Resolution;
+  treatment: Treatment;
+  sound: Sound;
 }
 
 /** What the provider produces when the request names neither, mirrored here so
@@ -19,6 +28,8 @@ export interface VideoParamsState {
 export const DEFAULT_VIDEO_PARAMS: VideoParamsState = {
   aspect_ratio: '16:9',
   resolution: '720p',
+  treatment: 'auto',
+  sound: 'auto',
 };
 
 /** A per-viewer convenience: someone shooting Reels keeps 9:16 across sessions
@@ -34,6 +45,18 @@ export const videoParamsAtom = createStorageAtom<VideoParamsState>(
  * same way an agent's `tool_options` does, and a second media tool needs a new
  * key rather than a new field.
  */
-export function toToolSettings(params: VideoParamsState): TToolSettings {
-  return { [VIDEO_TOOL_ID]: { ...params } };
+export function toToolSettings({
+  aspect_ratio,
+  resolution,
+  treatment,
+  sound,
+}: VideoParamsState): TToolSettings {
+  return {
+    [VIDEO_TOOL_ID]: {
+      aspect_ratio,
+      resolution,
+      ...(treatment !== 'auto' ? { treatment } : {}),
+      ...(sound !== 'auto' ? { sound } : {}),
+    },
+  };
 }

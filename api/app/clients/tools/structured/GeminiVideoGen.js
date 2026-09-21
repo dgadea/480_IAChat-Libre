@@ -6,6 +6,7 @@ const {
   omniToolkit,
   generateVideo,
   buildVideoGenSchema,
+  applyVideoDirection,
   prepareVideoGeneration,
 } = require('@librechat/api');
 const { convertImagesToInlineData } = require('./GeminiImageGen');
@@ -104,12 +105,18 @@ function createGeminiVideoTool(fields = {}) {
 
       const effectiveAspectRatio = videoParams.aspect_ratio || aspect_ratio;
       const effectiveResolution = videoParams.resolution || resolution;
+      /** Treatment and sound have no API field, so they are appended to the
+       *  prompt rather than passed as arguments — direction the renderer reads,
+       *  not a setting the provider enforces. */
+      const directedPrompt = applyVideoDirection(prompt, videoParams);
 
       logger.debug('[GeminiVideoGen] Generating video', {
         provider: prepared.provider,
         model: prepared.model,
         aspect_ratio: effectiveAspectRatio,
         resolution: effectiveResolution,
+        treatment: videoParams.treatment,
+        sound: videoParams.sound,
         overridden: Object.keys(videoParams).length > 0,
         editing: !!previous_interaction_id,
       });
@@ -119,7 +126,7 @@ function createGeminiVideoTool(fields = {}) {
         outcome = await generateVideo({
           prepared,
           request: {
-            prompt,
+            prompt: directedPrompt,
             images,
             duration,
             previousId: previous_interaction_id,
