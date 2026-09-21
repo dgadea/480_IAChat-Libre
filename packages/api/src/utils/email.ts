@@ -2,11 +2,17 @@ import { logger } from '@librechat/data-schemas';
 
 /**
  * Check if email configuration is set
- * @returns Returns `true` if either Mailgun or SMTP is properly configured
+ * @returns Returns `true` if Mailgun, SendGrid or SMTP is properly configured
+ *
+ * What this answers is whether the deployment can send at all: registration
+ * marks a new account verified outright when it cannot, so a provider missing
+ * here silently disables email verification rather than failing loudly.
  */
 export function checkEmailConfig(): boolean {
   const hasMailgunConfig =
     !!process.env.MAILGUN_API_KEY && !!process.env.MAILGUN_DOMAIN && !!process.env.EMAIL_FROM;
+
+  const hasSendGridConfig = !!process.env.SENDGRID_API_KEY && !!process.env.EMAIL_FROM;
 
   const hasSMTPConfig =
     (!!process.env.EMAIL_SERVICE || !!process.env.EMAIL_HOST) && !!process.env.EMAIL_FROM;
@@ -21,5 +27,5 @@ export function checkEmailConfig(): boolean {
     }
   }
 
-  return hasMailgunConfig || hasSMTPConfig;
+  return hasMailgunConfig || hasSendGridConfig || hasSMTPConfig;
 }
