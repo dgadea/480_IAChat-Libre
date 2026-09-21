@@ -30,6 +30,18 @@ function RequestPasswordReset() {
     }, 1000);
   }, [navigate]);
 
+  /** A failed verification has nowhere to send the user, so it clears the
+   *  countdown: the "redirecting" line renders while it is above zero, and the
+   *  resend prompt appears only once it reaches zero. Leaving it at its initial
+   *  value promised a redirect that no timer was running and hid the one action
+   *  left on the screen. */
+  const showFailure = useCallback((text: string) => {
+    setHeaderText(text);
+    setCountdown(0);
+    setShowResendLink(true);
+    setVerificationStatus(true);
+  }, []);
+
   const verifyEmailMutation = useVerifyEmailMutation({
     onSuccess: () => {
       setHeaderText(localize('com_auth_email_verification_success') + ' 🎉');
@@ -37,9 +49,7 @@ function RequestPasswordReset() {
       countdownRedirect();
     },
     onError: (_error: unknown) => {
-      setHeaderText(localize('com_auth_email_verification_failed') + ' 😢');
-      setShowResendLink(true);
-      setVerificationStatus(true);
+      showFailure(localize('com_auth_email_verification_failed') + ' 😢');
     },
   });
 
@@ -49,7 +59,7 @@ function RequestPasswordReset() {
       countdownRedirect();
     },
     onError: () => {
-      setHeaderText(localize('com_auth_email_resent_failed') + ' 😢');
+      showFailure(localize('com_auth_email_resent_failed') + ' 😢');
     },
     onMutate: () => setShowResendLink(false),
   });
@@ -66,15 +76,13 @@ function RequestPasswordReset() {
     if (token && email) {
       verifyEmailMutation.mutate({ email, token });
     } else {
-      if (email) {
-        setHeaderText(localize('com_auth_email_verification_failed_token_missing') + ' 😢');
-      } else {
-        setHeaderText(localize('com_auth_email_verification_invalid') + ' 🤨');
-      }
-      setShowResendLink(true);
-      setVerificationStatus(true);
+      showFailure(
+        email
+          ? localize('com_auth_email_verification_failed_token_missing') + ' 😢'
+          : localize('com_auth_email_verification_invalid') + ' 🤨',
+      );
     }
-  }, [token, email, verificationStatus, verifyEmailMutation, localize]);
+  }, [token, email, verificationStatus, verifyEmailMutation, localize, showFailure]);
 
   const VerificationSuccess = () => (
     <div className="flex flex-col items-center justify-center">
