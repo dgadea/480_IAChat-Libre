@@ -7,8 +7,8 @@ import { useUpdateUserPluginsMutation } from 'librechat-data-provider/react-quer
 import type { TError, TPluginAction } from 'librechat-data-provider';
 import type { ToolItem } from '../../items/types';
 import type { AgentForm } from '~/common';
+import GenerationModel, { GENERATION_MODEL_TOOL_IDS } from '../../../GenerationModel';
 import PluginAuthForm from '~/components/Plugins/Store/PluginAuthForm';
-import ImageModel, { IMAGE_MODEL_TOOL_IDS } from '../../../ImageModel';
 import { pluginNeedsAuth } from '../../items/auth';
 import Background from '../../../Background';
 import { useLocalize } from '~/hooks';
@@ -103,7 +103,7 @@ export default function ToolSection({ item }: Props) {
           onSubmit={handleSubmit}
         />
       )}
-      {IMAGE_MODEL_TOOL_IDS.has(item.id) && <ImageModel toolId={item.id} />}
+      {GENERATION_MODEL_TOOL_IDS.has(item.id) && <GenerationModel toolId={item.id} />}
       {isBackgroundEligibleTool(item.id) && (
         <Background
           toolIds={[item.id]}
