@@ -17,6 +17,7 @@ const {
   buildInlineMemoryTool,
   getCodeApiAuthHeaders,
   buildImageToolContext,
+  composeVideoToolContext,
   SET_MEMORY_TOOL_NAME,
   buildWebSearchContext,
   DELETE_MEMORY_TOOL_NAME,
@@ -258,10 +259,17 @@ const loadTools = async ({
       const authFields = getAuthFields('gemini_video_gen');
       const authValues = await loadAuthValues({ userId: user, authFields, throwError: false });
       const imageFiles = options.tool_resources?.[EToolResources.image_edit]?.files ?? [];
-      const toolContext = buildImageToolContext({
-        imageFiles,
-        toolName: 'gemini_video_gen',
-        contextDescription: 'image context',
+      const videoParams = resolveGeminiVideoParams({
+        toolOptions: agent?.tool_options,
+        requestParams: options.req?.body?.toolSettings,
+      });
+      const toolContext = composeVideoToolContext({
+        imageContext: buildImageToolContext({
+          imageFiles,
+          toolName: 'gemini_video_gen',
+          contextDescription: 'image context',
+        }),
+        params: videoParams,
       });
       if (toolContext) {
         dynamicToolContextMap.gemini_video_gen = toolContext;
@@ -274,10 +282,7 @@ const loadTools = async ({
         fileStrategy,
         toolOptions: agent?.tool_options,
         videoModel: resolveGeminiVideoModel(agent?.tool_options),
-        videoParams: resolveGeminiVideoParams({
-          toolOptions: agent?.tool_options,
-          requestParams: options.req?.body?.toolSettings,
-        }),
+        videoParams,
       });
     },
     gemini_image_gen: async (_toolContextMap, dynamicToolContextMap) => {
