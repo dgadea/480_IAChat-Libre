@@ -166,7 +166,11 @@ function createGeminiVideoTool(fields = {}) {
     },
     {
       ...omniToolkit.gemini_video_gen,
-      schema: buildVideoGenSchema(prepared?.capabilities),
+      /** Anything the user fixed in the composer is dropped from the schema:
+       *  the model cannot choose it, so offering the argument only invites a
+       *  value that the override then discards — visible in the call card as a
+       *  parameter contradicting the finished clip. */
+      schema: buildVideoGenSchema(prepared?.capabilities, videoParams),
       responseFormat: 'content_and_artifact',
     },
   );

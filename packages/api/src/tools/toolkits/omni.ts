@@ -102,6 +102,7 @@ const getGeminiVideoGenDescription = () => {
  */
 export function buildVideoGenSchema(
   capabilities: VideoAdapterCapabilities = GEMINI_CAPABILITIES,
+  fixed: GeminiVideoParams = {},
 ): ExtendedJsonSchema {
   const properties: NonNullable<ExtendedJsonSchema['properties']> = {
     prompt: {
@@ -132,7 +133,7 @@ export function buildVideoGenSchema(
     };
   }
 
-  if (capabilities.aspectRatios.length) {
+  if (capabilities.aspectRatios.length && !fixed.aspect_ratio) {
     properties.aspect_ratio = {
       type: 'string',
       enum: [...capabilities.aspectRatios],
@@ -141,7 +142,7 @@ export function buildVideoGenSchema(
     };
   }
 
-  if (capabilities.resolutions.length) {
+  if (capabilities.resolutions.length && !fixed.resolution) {
     properties.resolution = {
       type: 'string',
       enum: [...capabilities.resolutions],
@@ -161,7 +162,7 @@ export function buildVideoGenSchema(
   return {
     type: 'object',
     properties,
-    required: ['prompt', ...(capabilities.aspectRatios.length ? ['aspect_ratio'] : [])],
+    required: ['prompt', ...(properties.aspect_ratio ? ['aspect_ratio'] : [])],
   };
 }
 

@@ -142,3 +142,39 @@ describe('resolveGeminiVideoParams — creative direction', () => {
     ).toEqual({ treatment: 'animation', sound: 'music' });
   });
 });
+
+describe('buildVideoGenSchema — parameters the user already fixed', () => {
+  it('offers both controls when the composer fixed nothing', () => {
+    const schema = buildVideoGenSchema();
+    expect(schema.properties?.aspect_ratio).toBeDefined();
+    expect(schema.properties?.resolution).toBeDefined();
+    expect(schema.required).toContain('aspect_ratio');
+  });
+
+  it('drops a fixed aspect ratio, and stops requiring it', () => {
+    const schema = buildVideoGenSchema(undefined, { aspect_ratio: '9:16' });
+    expect(schema.properties?.aspect_ratio).toBeUndefined();
+    expect(schema.required).toEqual(['prompt']);
+    expect(schema.properties?.resolution).toBeDefined();
+  });
+
+  it('drops a fixed resolution and leaves the shape choosable', () => {
+    const schema = buildVideoGenSchema(undefined, { resolution: '1080p' });
+    expect(schema.properties?.resolution).toBeUndefined();
+    expect(schema.properties?.aspect_ratio).toBeDefined();
+    expect(schema.required).toContain('aspect_ratio');
+  });
+
+  it('keeps the prompt whatever is fixed', () => {
+    const schema = buildVideoGenSchema(undefined, { aspect_ratio: '16:9', resolution: '720p' });
+    expect(schema.properties?.prompt).toBeDefined();
+    expect(schema.required).toEqual(['prompt']);
+  });
+
+  it('is unaffected by direction, which is never a schema argument', () => {
+    const schema = buildVideoGenSchema(undefined, { treatment: '3d', sound: 'silent' });
+    expect(schema.properties?.aspect_ratio).toBeDefined();
+    expect(schema.properties?.treatment).toBeUndefined();
+    expect(schema.properties?.sound).toBeUndefined();
+  });
+});

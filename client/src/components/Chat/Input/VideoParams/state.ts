@@ -29,7 +29,10 @@ export const DEFAULT_VIDEO_PARAMS: VideoParamsState = {
   aspect_ratio: '16:9',
   resolution: '720p',
   treatment: 'auto',
-  sound: 'auto',
+  /** The provider generates audio natively and most clips are cut to a track
+   *  later, so silence is the useful default. It is prompt direction rather
+   *  than an API setting, so it asks for silence without guaranteeing it. */
+  sound: 'silent',
 };
 
 /** A per-viewer convenience: someone shooting Reels keeps 9:16 across sessions
