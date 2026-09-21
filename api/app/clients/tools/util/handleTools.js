@@ -272,6 +272,7 @@ const loadTools = async ({
         req: options.req,
         imageFiles,
         fileStrategy,
+        toolOptions: agent?.tool_options,
         videoModel: resolveGeminiVideoModel(agent?.tool_options),
         videoParams: resolveGeminiVideoParams({
           toolOptions: agent?.tool_options,

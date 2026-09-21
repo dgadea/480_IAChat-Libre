@@ -1,0 +1,184 @@
+import type { TVideoGenerationConfig } from 'librechat-data-provider';
+import type { VideoAdapterCapabilities } from './types';
+import {
+  mergeCapabilities,
+  createVideoAdapter,
+  listVideoModels,
+  resolveVideoConfig,
+  resolveVideoSelection,
+  IMPLICIT_PROVIDER_NAME,
+} from './registry';
+import { GEMINI_CAPABILITIES } from './gemini';
+
+const config: TVideoGenerationConfig = {
+  default: 'secondary',
+  maxFileSizeMB: 100,
+  providers: {
+    primary: {
+      adapter: 'gemini_omni',
+      apiKey: 'primary-key',
+      models: [{ name: 'gemini-omni-1.1-flash' }],
+    },
+    secondary: {
+      adapter: 'gemini_omni',
+      apiKey: 'secondary-key',
+      models: [
+        { name: 'gemini-omni-1.1-pro', capabilities: { durations: [5, 10], editing: false } },
+      ],
+    },
+  },
+};
+
+describe('resolveVideoConfig', () => {
+  it('synthesizes the provider a deployment never wrote from the credential it has', () => {
+    const resolved = resolveVideoConfig({
+      fallback: { apiKey: 'env-key', model: 'gemini-omni-1.1-flash' },
+    });
+
+    expect(resolved?.providers[IMPLICIT_PROVIDER_NAME]).toEqual({
+      adapter: 'gemini_omni',
+      apiKey: 'env-key',
+      models: [{ name: 'gemini-omni-1.1-flash' }],
+    });
+  });
+
+  it('is null when nothing is configured and no credential exists', () => {
+    expect(resolveVideoConfig({ fallback: { model: 'gemini-omni-1.1-flash' } })).toBeNull();
+    expect(resolveVideoConfig({})).toBeNull();
+  });
+
+  it('keeps a configured block rather than shadowing it with the fallback', () => {
+    const resolved = resolveVideoConfig({
+      config,
+      fallback: { apiKey: 'env-key', model: 'other' },
+    });
+
+    expect(resolved).toBe(config);
+    expect(resolved?.providers[IMPLICIT_PROVIDER_NAME]).toBeUndefined();
+  });
+
+  it('treats an empty providers map as no configuration at all', () => {
+    const resolved = resolveVideoConfig({
+      config: { providers: {}, maxFileSizeMB: 100 },
+      fallback: { apiKey: 'env-key', model: 'gemini-omni-1.1-flash' },
+    });
+
+    expect(resolved?.providers[IMPLICIT_PROVIDER_NAME]).toBeDefined();
+  });
+});
+
+describe('listVideoModels', () => {
+  it('flattens every provider/model pair and carries the declared capabilities', () => {
+    expect(listVideoModels(config)).toEqual([
+      {
+        provider: 'primary',
+        model: 'gemini-omni-1.1-flash',
+        description: undefined,
+        capabilities: undefined,
+      },
+      {
+        provider: 'secondary',
+        model: 'gemini-omni-1.1-pro',
+        description: undefined,
+        capabilities: { durations: [5, 10], editing: false },
+      },
+    ]);
+  });
+
+  it('is empty when nothing is configured', () => {
+    expect(listVideoModels(null)).toEqual([]);
+  });
+});
+
+describe('resolveVideoSelection', () => {
+  it('prefers the deployment default over declaration order', () => {
+    expect(resolveVideoSelection({ config, toolId: 'gemini_video_gen' })?.provider).toBe(
+      'secondary',
+    );
+  });
+
+  it("lets the agent's own model win over the deployment default", () => {
+    const selection = resolveVideoSelection({
+      config,
+      toolId: 'gemini_video_gen',
+      toolOptions: { gemini_video_gen: { image_model: 'gemini-omni-1.1-flash' } },
+    });
+
+    expect(selection?.provider).toBe('primary');
+  });
+
+  it('falls back to the first provider when the default names nothing configured', () => {
+    const selection = resolveVideoSelection({
+      config: { ...config, default: 'missing' },
+      toolId: 'gemini_video_gen',
+    });
+
+    expect(selection?.provider).toBe('primary');
+  });
+
+  it('ignores a model the deployment does not offer instead of forwarding it', () => {
+    const selection = resolveVideoSelection({
+      config,
+      toolId: 'gemini_video_gen',
+      requestedModel: 'sora-9',
+    });
+
+    expect(selection?.model).toBe('gemini-omni-1.1-pro');
+  });
+});
+
+describe('mergeCapabilities', () => {
+  it('returns the adapter defaults untouched when the model declares none', () => {
+    expect(mergeCapabilities(GEMINI_CAPABILITIES)).toBe(GEMINI_CAPABILITIES);
+  });
+
+  it('overrides field by field, keeping what the model did not mention', () => {
+    const merged: VideoAdapterCapabilities = mergeCapabilities(GEMINI_CAPABILITIES, {
+      durations: [5, 10],
+      editing: false,
+    });
+
+    expect(merged).toEqual({
+      aspectRatios: GEMINI_CAPABILITIES.aspectRatios,
+      resolutions: GEMINI_CAPABILITIES.resolutions,
+      durations: [5, 10],
+      maxImages: GEMINI_CAPABILITIES.maxImages,
+      editing: false,
+    });
+  });
+
+  it('honors an explicitly emptied list rather than falling back to the default', () => {
+    expect(mergeCapabilities(GEMINI_CAPABILITIES, { resolutions: [] }).resolutions).toEqual([]);
+  });
+
+  it('honors maxImages zero for a text-only model', () => {
+    expect(mergeCapabilities(GEMINI_CAPABILITIES, { maxImages: 0 }).maxImages).toBe(0);
+  });
+});
+
+describe('createVideoAdapter', () => {
+  it('builds the adapter a configured provider names', () => {
+    const adapter = createVideoAdapter({ config, providerName: 'primary' });
+    expect(adapter.capabilities).toEqual(GEMINI_CAPABILITIES);
+  });
+
+  it('names the available adapters when the config names one that does not exist', () => {
+    expect(() =>
+      createVideoAdapter({
+        config: {
+          maxFileSizeMB: 100,
+          providers: {
+            typo: { adapter: 'gemini-omni' as 'gemini_omni', models: [{ name: 'x' }] },
+          },
+        },
+        providerName: 'typo',
+      }),
+    ).toThrow(/Unknown video adapter "gemini-omni". Available: gemini_omni/);
+  });
+
+  it('throws for a provider that is not configured at all', () => {
+    expect(() => createVideoAdapter({ config, providerName: 'absent' })).toThrow(
+      /Video provider "absent" is not configured/,
+    );
+  });
+});

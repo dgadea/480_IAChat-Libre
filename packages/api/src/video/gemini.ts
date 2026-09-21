@@ -4,9 +4,21 @@ import type {
   ResolvedVideoProvider,
   VideoGenerationRequest,
   VideoGenerationResult,
+  VideoAdapterCapabilities,
 } from './types';
 
 const DEFAULT_BASE_URL = 'https://generativelanguage.googleapis.com/v1beta';
+
+/** Omni takes no length argument and interpolates between at most two frames,
+ *  so `durations` is empty rather than defaulted — the tool reads the absence
+ *  as "do not offer this control" instead of inventing a value the API drops. */
+export const GEMINI_CAPABILITIES: VideoAdapterCapabilities = {
+  aspectRatios: ['16:9', '9:16'],
+  resolutions: ['360p', '720p', '1080p', '4k'],
+  durations: [],
+  maxImages: 2,
+  editing: true,
+};
 
 interface InteractionPart {
   type?: string;
@@ -50,6 +62,8 @@ export function createGeminiVideoAdapter(provider: ResolvedVideoProvider): Video
   const baseURL = provider.baseURL || DEFAULT_BASE_URL;
 
   return {
+    capabilities: GEMINI_CAPABILITIES,
+
     async generate(request: VideoGenerationRequest): Promise<VideoGenerationResult> {
       if (!provider.apiKey) {
         throw new Error(
@@ -57,9 +71,22 @@ export function createGeminiVideoAdapter(provider: ResolvedVideoProvider): Video
         );
       }
 
+      /** `input` takes a bare string for text-to-video, or a typed list when
+       *  images come along — one image is a starting reference, two are read as
+       *  first and last frame with the motion interpolated between them. */
+      const images = request.images ?? [];
       const body: Record<string, unknown> = {
         model: request.model,
-        input: request.prompt,
+        input: images.length
+          ? [
+              ...images.map((image) => ({
+                type: 'image',
+                data: image.data,
+                mime_type: image.mimeType,
+              })),
+              { type: 'text', text: request.prompt },
+            ]
+          : request.prompt,
       };
       if (request.previousId) {
         body.previous_interaction_id = request.previousId;
@@ -78,6 +105,7 @@ export function createGeminiVideoAdapter(provider: ResolvedVideoProvider): Video
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
+        signal: request.signal,
       });
 
       const interaction = (await response.json()) as InteractionResponse;

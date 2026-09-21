@@ -2,35 +2,23 @@ const { v4 } = require('uuid');
 const { logger } = require('@librechat/data-schemas');
 const { tool } = require('@librechat/agents/langchain/tools');
 const { ContentTypes } = require('librechat-data-provider');
-const { omniToolkit, resolveGeminiVideoModel } = require('@librechat/api');
+const {
+  omniToolkit,
+  generateVideo,
+  buildVideoGenSchema,
+  prepareVideoGeneration,
+} = require('@librechat/api');
 const { convertImagesToInlineData } = require('./GeminiImageGen');
 
-const INTERACTIONS_URL = 'https://generativelanguage.googleapis.com/v1beta/interactions';
+const TOOL_ID = 'gemini_video_gen';
+
+const textOnly = (text) => [[{ type: ContentTypes.TEXT, text }], { content: [], file_ids: [] }];
 
 /**
- * Pulls the first video block out of an Interactions response. The convenience
- * field `output_video` is SDK-only, so over REST the video lives in the `steps`
- * array alongside the model's thoughts and the echoed user input.
- * @param {object} interaction
- * @returns {{ data: string, mimeType: string } | null}
- */
-function extractVideo(interaction) {
-  const steps = Array.isArray(interaction?.steps) ? interaction.steps : [];
-  for (const step of steps) {
-    const content = Array.isArray(step?.content) ? step.content : [];
-    for (const part of content) {
-      if (part?.type === 'video' && part.data) {
-        return { data: part.data, mimeType: part.mime_type || 'video/mp4' };
-      }
-    }
-  }
-  return null;
-}
-
-/**
- * Creates the Gemini Omni video generation tool.
+ * Creates the video generation tool.
  * @param {Object} fields - Configuration fields
- * @param {string} [fields.videoModel] - Video model for this agent, already resolved from its `tool_options`
+ * @param {string} [fields.videoModel] - Model for this agent, used when the deployment configures no provider
+ * @param {import('librechat-data-provider').AgentToolOptions} [fields.toolOptions] - The agent's own settings
  * @returns {ReturnType<tool>} - The video generation tool
  */
 function createGeminiVideoTool(fields = {}) {
@@ -41,35 +29,54 @@ function createGeminiVideoTool(fields = {}) {
   }
 
   const { req, imageFiles = [], fileStrategy, GEMINI_API_KEY, GOOGLE_KEY } = fields;
-  const videoModel = fields.videoModel || resolveGeminiVideoModel();
   /** Resolved by the caller from the composer's controls and the agent's own
    *  settings. Set deliberately by the user, so they win over the model's
    *  arguments rather than merely filling in for a missing one. */
   const videoParams = fields.videoParams ?? {};
 
+  /** Resolved once, here rather than per call, because the argument schema the
+   *  model reads is built from the selected model's capabilities — resolving
+   *  the provider later would leave the two free to disagree. */
+  let prepared = null;
+  let setupError = null;
+  try {
+    prepared = prepareVideoGeneration({
+      config: req?.config?.videoGeneration,
+      toolOptions: fields.toolOptions,
+      toolId: TOOL_ID,
+      fallback: {
+        apiKey: GEMINI_API_KEY || GOOGLE_KEY,
+        model: fields.videoModel,
+      },
+    });
+  } catch (error) {
+    /** A provider naming an adapter nothing implements must not take the whole
+     *  agent down with it: the tool loads and reports the misconfiguration to
+     *  the one conversation that calls it. */
+    setupError = error;
+    logger.error('[GeminiVideoGen] Could not resolve a video provider:', error);
+  }
+
   const geminiVideoGenTool = tool(
-    async ({ prompt, image_ids, previous_interaction_id, aspect_ratio, resolution }) => {
+    async (
+      { prompt, image_ids, previous_interaction_id, aspect_ratio, resolution, duration },
+      runnableConfig,
+    ) => {
       if (!prompt) {
         throw new Error('Missing required field: prompt');
       }
 
-      const apiKey = GEMINI_API_KEY || GOOGLE_KEY;
-      if (!apiKey) {
-        return [
-          [
-            {
-              type: ContentTypes.TEXT,
-              text: 'Video generation requires a Gemini API key: set GEMINI_API_KEY or GOOGLE_KEY.',
-            },
-          ],
-          { content: [], file_ids: [] },
-        ];
+      if (setupError) {
+        return textOnly(`Video generation is misconfigured: ${setupError.message}`);
       }
 
-      /** `input` takes a bare string for text-to-video, or a typed list when
-       *  images come along — one image is a starting reference, two are read as
-       *  first and last frame with the motion interpolated between them. */
-      let input = prompt;
+      if (!prepared) {
+        return textOnly(
+          'Video generation is not configured: add a `videoGeneration` provider in librechat.yaml, or set GEMINI_API_KEY or GOOGLE_KEY.',
+        );
+      }
+
+      let images;
       if (image_ids?.length) {
         const inlineImages = await convertImagesToInlineData({
           imageFiles,
@@ -85,81 +92,45 @@ function createGeminiVideoTool(fields = {}) {
             requested: image_ids.length,
             loaded: inlineImages.length,
           });
-          return [
-            [
-              {
-                type: ContentTypes.TEXT,
-                text: `Could not load ${image_ids.length - inlineImages.length} of the ${image_ids.length} reference image(s). No video was generated — generating without the reference would have produced an unrelated clip. Ask the user to re-upload the image.`,
-              },
-            ],
-            { content: [], file_ids: [] },
-          ];
+          return textOnly(
+            `Could not load ${image_ids.length - inlineImages.length} of the ${image_ids.length} reference image(s). No video was generated — generating without the reference would have produced an unrelated clip. Ask the user to re-upload the image.`,
+          );
         }
-        if (inlineImages.length) {
-          input = [
-            ...inlineImages.map(({ inlineData }) => ({
-              type: 'image',
-              data: inlineData.data,
-              mime_type: inlineData.mimeType,
-            })),
-            { type: 'text', text: prompt },
-          ];
-        }
+        images = inlineImages.map(({ inlineData }) => ({
+          data: inlineData.data,
+          mimeType: inlineData.mimeType,
+        }));
       }
 
       const effectiveAspectRatio = videoParams.aspect_ratio || aspect_ratio;
       const effectiveResolution = videoParams.resolution || resolution;
 
-      const body = { model: videoModel, input };
-      if (previous_interaction_id) {
-        body.previous_interaction_id = previous_interaction_id;
-      }
-      /** Both live inside `response_format` alongside `type: 'video'`. At the
-       *  top level the API rejects the request, which is what three failed
-       *  generations reported as an aspect_ratio error. */
-      if (effectiveAspectRatio || effectiveResolution) {
-        body.response_format = {
-          type: 'video',
-          ...(effectiveAspectRatio ? { aspect_ratio: effectiveAspectRatio } : {}),
-          ...(effectiveResolution ? { resolution: effectiveResolution } : {}),
-        };
-      }
-
       logger.debug('[GeminiVideoGen] Generating video', {
-        videoModel,
+        provider: prepared.provider,
+        model: prepared.model,
         aspect_ratio: effectiveAspectRatio,
         resolution: effectiveResolution,
         overridden: Object.keys(videoParams).length > 0,
         editing: !!previous_interaction_id,
       });
 
-      let interaction;
+      let outcome;
       try {
-        const response = await fetch(`${INTERACTIONS_URL}?key=${apiKey}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(body),
+        outcome = await generateVideo({
+          prepared,
+          request: {
+            prompt,
+            images,
+            duration,
+            previousId: previous_interaction_id,
+            aspectRatio: effectiveAspectRatio,
+            resolution: effectiveResolution,
+            signal: runnableConfig?.signal ? AbortSignal.any([runnableConfig.signal]) : undefined,
+          },
         });
-        interaction = await response.json();
-        if (!response.ok || interaction?.error) {
-          const message = interaction?.error?.message || `HTTP ${response.status}`;
-          throw new Error(message);
-        }
       } catch (error) {
-        logger.error('[GeminiVideoGen] API error:', error);
-        return [
-          [{ type: ContentTypes.TEXT, text: `Video generation failed: ${error.message}` }],
-          { content: [], file_ids: [] },
-        ];
-      }
-
-      const video = extractVideo(interaction);
-      if (!video) {
-        logger.warn('[GeminiVideoGen] No video in response', { status: interaction?.status });
-        return [
-          [{ type: ContentTypes.TEXT, text: 'No video was generated. Please try again.' }],
-          { content: [], file_ids: [] },
-        ];
+        logger.error('[GeminiVideoGen] Generation failed:', error);
+        return textOnly(`Video generation failed: ${error.message}`);
       }
 
       /** Handed over as a data URL: the agent artifact pipeline is what stores
@@ -167,7 +138,7 @@ function createGeminiVideoTool(fields = {}) {
        *  that saves the file itself leaves an unfetchable path in the message
        *  that the next model call then chokes on. */
       const file_id = v4();
-      const dataUrl = `data:${video.mimeType};base64,${video.data}`;
+      const dataUrl = `data:${outcome.mimeType};base64,${outcome.buffer.toString('base64')}`;
 
       const content = [{ type: ContentTypes.VIDEO_URL, video_url: { url: dataUrl } }];
 
@@ -178,7 +149,7 @@ function createGeminiVideoTool(fields = {}) {
           type: ContentTypes.TEXT,
           text:
             'Video generated.' +
-            (interaction?.id ? `\n\ninteraction_id: "${interaction.id}"` : '') +
+            (outcome.previousId ? `\n\ninteraction_id: "${outcome.previousId}"` : '') +
             `\nresolution: ${effectiveResolution || '720p'}` +
             `\naspect_ratio: ${effectiveAspectRatio || '16:9'}`,
         },
@@ -188,6 +159,7 @@ function createGeminiVideoTool(fields = {}) {
     },
     {
       ...omniToolkit.gemini_video_gen,
+      schema: buildVideoGenSchema(prepared?.capabilities),
       responseFormat: 'content_and_artifact',
     },
   );

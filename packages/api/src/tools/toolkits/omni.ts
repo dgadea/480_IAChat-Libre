@@ -1,5 +1,7 @@
 import type { AgentToolOptions, TToolSettings } from 'librechat-data-provider';
+import type { VideoAdapterCapabilities } from '../../video/types';
 import type { ExtendedJsonSchema } from '../registry/schema';
+import { GEMINI_CAPABILITIES } from '../../video/gemini';
 import { resolveAgentImageModel } from './images';
 
 /** Model used when neither the agent nor the deployment selects one. */
@@ -78,41 +80,78 @@ const getGeminiVideoGenDescription = () => {
   return process.env.GEMINI_VIDEO_GEN_DESCRIPTION || DEFAULT_GEMINI_VIDEO_GEN_DESCRIPTION;
 };
 
-const geminiVideoGenJsonSchema: ExtendedJsonSchema = {
-  type: 'object',
-  properties: {
+/**
+ * The tool's arguments, described from what the selected provider can actually
+ * do. A control the provider does not expose is left out entirely rather than
+ * offered and ignored: an enum the model can choose from is a promise, and a
+ * dropped `duration` spends real money on a clip of the wrong length.
+ */
+export function buildVideoGenSchema(
+  capabilities: VideoAdapterCapabilities = GEMINI_CAPABILITIES,
+): ExtendedJsonSchema {
+  const properties: NonNullable<ExtendedJsonSchema['properties']> = {
     prompt: {
       type: 'string',
       maxLength: 32000,
       description:
         'A detailed description of the video: subject, action, camera movement, lighting and mood. For an edit, describe only what changes.',
     },
-    image_ids: {
+  };
+
+  if (capabilities.maxImages > 0) {
+    properties.image_ids = {
       type: 'array',
       items: { type: 'string' },
+      maxItems: capabilities.maxImages,
       description:
-        'Image ids to animate. One image is the starting reference; two are read as first and last frame, and the video interpolates between them. Omit for text-to-video.',
-    },
-    previous_interaction_id: {
+        capabilities.maxImages > 1
+          ? 'Image ids to animate. One image is the starting reference; two are read as first and last frame, and the video interpolates between them. Omit for text-to-video.'
+          : 'Id of the image to animate, used as the starting reference. Omit for text-to-video.',
+    };
+  }
+
+  if (capabilities.editing) {
+    properties.previous_interaction_id = {
       type: 'string',
       description:
         'The interaction id of a video generated earlier in this conversation. Pass it to edit that video while preserving everything you do not mention. Omit it to generate a new video.',
-    },
-    aspect_ratio: {
+    };
+  }
+
+  if (capabilities.aspectRatios.length) {
+    properties.aspect_ratio = {
       type: 'string',
-      enum: ['16:9', '9:16'],
+      enum: [...capabilities.aspectRatios],
       description:
         'Shape of the video, and the ONLY way to set it — writing "vertical" or "9:16" in the prompt does nothing. 16:9 is landscape, 9:16 is portrait. When editing, pass the same value the original used.',
-    },
-    resolution: {
+    };
+  }
+
+  if (capabilities.resolutions.length) {
+    properties.resolution = {
       type: 'string',
-      enum: ['360p', '720p', '1080p', '4k'],
+      enum: [...capabilities.resolutions],
       description:
         'Output resolution. 720p is the default. Higher resolutions cost proportionally more, so only use them once the direction is approved.',
-    },
-  },
-  required: ['prompt', 'aspect_ratio'],
-};
+    };
+  }
+
+  if (capabilities.durations.length) {
+    properties.duration = {
+      type: 'number',
+      enum: [...capabilities.durations],
+      description: `Length of the clip in seconds. Longer clips cost proportionally more, so stay at ${capabilities.durations[0]} while exploring.`,
+    };
+  }
+
+  return {
+    type: 'object',
+    properties,
+    required: ['prompt', ...(capabilities.aspectRatios.length ? ['aspect_ratio'] : [])],
+  };
+}
+
+const geminiVideoGenJsonSchema: ExtendedJsonSchema = buildVideoGenSchema();
 
 export const omniToolkit: {
   readonly gemini_video_gen: {

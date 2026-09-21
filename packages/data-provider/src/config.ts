@@ -2580,22 +2580,51 @@ export const DEFAULT_MEMORY_MAX_INPUT_TOKENS = 12000;
  *  writing one adapter and naming it here — not branching inside shared code. */
 export const videoAdapterSchema = z.enum(['gemini_omni']);
 
+/**
+ * What one model can do, overriding the adapter's defaults field by field.
+ *
+ * Declared per model rather than per adapter because that is what makes adding
+ * a model a configuration change: two models behind the same API routinely
+ * differ on length, shape and whether they accept a reference frame, and
+ * without this the second one needs an edit to the adapter's code.
+ */
+export const videoCapabilitiesSchema = z.object({
+  aspectRatios: z.array(z.string()).optional(),
+  resolutions: z.array(z.string()).optional(),
+  /** Selectable lengths in seconds; an empty list hides the control. */
+  durations: z.array(z.number().positive()).optional(),
+  maxImages: z.number().int().nonnegative().optional(),
+  editing: z.boolean().optional(),
+});
+
+export type TVideoCapabilities = z.infer<typeof videoCapabilitiesSchema>;
+
 export const videoModelSchema = z.object({
   name: z.string(),
   /** Shown to the operator and to the model when it picks between models. */
   description: z.string().optional(),
+  capabilities: videoCapabilitiesSchema.optional(),
 });
 
 export const videoProviderSchema = z.object({
   adapter: videoAdapterSchema,
   apiKey: z.string().optional(),
+  /** Second half of a key pair, for providers that sign each request rather
+   *  than sending a bearer token. */
+  apiSecret: z.string().optional(),
   baseURL: z.string().optional(),
   models: z.array(videoModelSchema).min(1),
 });
 
+/** Ceiling on a video fetched from a provider that answers with a location
+ *  instead of bytes. The default clears any clip these models produce today,
+ *  while still refusing a response large enough to exhaust the process. */
+export const DEFAULT_VIDEO_MAX_FILE_SIZE_MB = 100;
+
 export const videoGenerationSchema = z.object({
   /** Provider used when neither the agent nor the request names one. */
   default: z.string().optional(),
+  maxFileSizeMB: z.number().positive().default(DEFAULT_VIDEO_MAX_FILE_SIZE_MB),
   providers: z.record(videoProviderSchema),
 });
 

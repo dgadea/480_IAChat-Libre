@@ -1,5 +1,15 @@
-import type { TVideoGenerationConfig, AgentToolOptions } from 'librechat-data-provider';
-import type { VideoAdapter, VideoAdapterFactory, ResolvedVideoProvider } from './types';
+import { DEFAULT_VIDEO_MAX_FILE_SIZE_MB } from 'librechat-data-provider';
+import type {
+  AgentToolOptions,
+  TVideoCapabilities,
+  TVideoGenerationConfig,
+} from 'librechat-data-provider';
+import type {
+  VideoAdapter,
+  VideoAdapterFactory,
+  VideoAdapterCapabilities,
+  ResolvedVideoProvider,
+} from './types';
 import { createGeminiVideoAdapter } from './gemini';
 
 /** Every adapter the deployment can name in `videoGeneration.providers[].adapter`. */
@@ -7,11 +17,80 @@ const adapterFactories: Record<string, VideoAdapterFactory> = {
   gemini_omni: createGeminiVideoAdapter,
 };
 
+/** Name given to the provider synthesized when `librechat.yaml` declares no
+ *  `videoGeneration` block at all. */
+export const IMPLICIT_PROVIDER_NAME = 'gemini';
+
+/**
+ * The deployment's video configuration, or an equivalent one built from the
+ * credentials the tool already holds.
+ *
+ * Every deployment generating video today does so without a `videoGeneration`
+ * block — the tool reads its key from the environment and its model from
+ * `GEMINI_VIDEO_MODEL`. Synthesizing the provider they never wrote keeps those
+ * deployments working unchanged once the tool routes through this registry,
+ * instead of making the refactor an upgrade note.
+ *
+ * Returns null when nothing is configured and no fallback key exists, which the
+ * caller reports as the missing-credential case rather than as a failure.
+ */
+export function resolveVideoConfig({
+  config,
+  fallback,
+}: {
+  config?: TVideoGenerationConfig | null;
+  fallback?: { apiKey?: string; model: string };
+}): TVideoGenerationConfig | null {
+  if (config?.providers && Object.keys(config.providers).length > 0) {
+    return config;
+  }
+
+  if (!fallback?.apiKey) {
+    return null;
+  }
+
+  return {
+    default: IMPLICIT_PROVIDER_NAME,
+    maxFileSizeMB: config?.maxFileSizeMB ?? DEFAULT_VIDEO_MAX_FILE_SIZE_MB,
+    providers: {
+      [IMPLICIT_PROVIDER_NAME]: {
+        adapter: 'gemini_omni',
+        apiKey: fallback.apiKey,
+        models: [{ name: fallback.model }],
+      },
+    },
+  };
+}
+
 /** One selectable entry, flattened across providers for menus and tool enums. */
 export interface VideoModelChoice {
   provider: string;
   model: string;
   description?: string;
+  capabilities?: TVideoCapabilities;
+}
+
+/**
+ * The adapter's defaults with the model's declared overrides applied.
+ *
+ * Merged field by field rather than wholesale, so a model that differs only in
+ * the lengths it bills for says just that in `librechat.yaml` and keeps
+ * everything else its provider already supports.
+ */
+export function mergeCapabilities(
+  defaults: VideoAdapterCapabilities,
+  overrides?: TVideoCapabilities,
+): VideoAdapterCapabilities {
+  if (!overrides) {
+    return defaults;
+  }
+  return {
+    aspectRatios: overrides.aspectRatios ?? defaults.aspectRatios,
+    resolutions: overrides.resolutions ?? defaults.resolutions,
+    durations: overrides.durations ?? defaults.durations,
+    maxImages: overrides.maxImages ?? defaults.maxImages,
+    editing: overrides.editing ?? defaults.editing,
+  };
 }
 
 /**
@@ -31,6 +110,7 @@ export function listVideoModels(config?: TVideoGenerationConfig | null): VideoMo
         provider: providerName,
         model: model.name,
         description: model.description,
+        capabilities: model.capabilities,
       });
     }
   }
@@ -107,6 +187,7 @@ export function createVideoAdapter({
     name: providerName,
     adapter: provider.adapter,
     apiKey: provider.apiKey,
+    apiSecret: provider.apiSecret,
     baseURL: provider.baseURL,
     models: provider.models,
   };
