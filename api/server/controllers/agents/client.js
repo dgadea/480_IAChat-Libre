@@ -183,6 +183,7 @@ const {
   isAgentRunCancellation,
   markCompactionOutcome,
   resolvePersistableCodeEnvironmentDecision,
+  deriveTitleFromText,
 } = require('@librechat/api');
 const {
   Run,
@@ -5983,6 +5984,13 @@ class AgentClient extends BaseClient {
       return;
     }
 
+    /** The title model is best-effort: when it errors, times out or answers
+     *  empty, the conversation keeps its default name and the user is left with
+     *  a sidebar of identical entries. `titleFallbackToPrompt` opts that
+     *  deployment into showing the user's own opening message instead. */
+    const titleFallback = () =>
+      endpointConfig?.titleFallbackToPrompt === true ? deriveTitleFromText(text) : null;
+
     if (endpointConfig?.titleEndpoint && endpointConfig.titleEndpoint !== endpoint) {
       try {
         titleProviderConfig = getProviderConfig({
@@ -6155,13 +6163,13 @@ class AgentClient extends BaseClient {
         );
       });
 
-      return sanitizeTitle(titleResult.title);
+      return sanitizeTitle(titleResult.title) || titleFallback();
     } catch (err) {
       logger.error(
         '[api/server/controllers/agents/client.js #titleConvo] Error',
         getSafeErrorMetadata(err),
       );
-      return;
+      return titleFallback();
     }
   }
 

@@ -694,6 +694,13 @@ export const baseEndpointSchema = z.object({
   titleEndpoint: z.string().optional(),
   titlePromptTemplate: z.string().optional(),
   /**
+   * When the title model returns nothing — it errored, timed out, or answered
+   * empty — fall back to the user's opening message instead of leaving the
+   * conversation named "New Chat". Off by default, which keeps the existing
+   * behavior of showing no title at all.
+   */
+  titleFallbackToPrompt: z.boolean().optional(),
+  /**
    * When conversation titles are generated. `immediate` (default) generates the
    * title as soon as the request is made, in parallel with the response, from the
    * user's first message. `final` defers generation until the full response
@@ -1595,6 +1602,7 @@ export const azureEndpointSchema = z
         titlePrompt: true,
         titleTiming: true,
         titlePromptTemplate: true,
+        titleFallbackToPrompt: true,
         activityLabel: true,
         activityModel: true,
         activityEndpoint: true,

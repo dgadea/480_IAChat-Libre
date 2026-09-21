@@ -33,10 +33,25 @@ interface:
   agents: true
 
 endpoints:
+  # `titleFallbackToPrompt` cubre el caso en que el modelo de título falla o
+  # devuelve vacío: en vez de dejar la conversación como "New Chat", la nombra
+  # con el primer mensaje del usuario. Va en cada endpoint por separado a
+  # propósito — un bloque `all` se impone sobre el resto de esta sección
+  # (`client.js #titleConvo` lo lee primero) y se llevaría puesto el
+  # `titleModel` de Google.
   google:
     titleConvo: true
-    titleModel: 'gemini-2.5-flash-lite'
+    titleModel: 'gemini-3.1-flash-lite'
+    titleFallbackToPrompt: true
     streamRate: 25
+
+  anthropic:
+    titleConvo: true
+    titleFallbackToPrompt: true
+
+  openAI:
+    titleConvo: true
+    titleFallbackToPrompt: true
 
   custom:
     # Solo los modelos de conversación. Los `grok-imagine-*` de imagen y video
@@ -49,6 +64,7 @@ endpoints:
       titleConvo: true
       titleMethod: 'completion'
       titleModel: 'grok-4.3'
+      titleFallbackToPrompt: true
       models:
         fetch: false
         default:
