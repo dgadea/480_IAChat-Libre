@@ -42,6 +42,10 @@ function createGeminiVideoTool(fields = {}) {
 
   const { req, imageFiles = [], fileStrategy, GEMINI_API_KEY, GOOGLE_KEY } = fields;
   const videoModel = fields.videoModel || resolveGeminiVideoModel();
+  /** Resolved by the caller from the composer's controls and the agent's own
+   *  settings. Set deliberately by the user, so they win over the model's
+   *  arguments rather than merely filling in for a missing one. */
+  const videoParams = fields.videoParams ?? {};
 
   const geminiVideoGenTool = tool(
     async ({ prompt, image_ids, previous_interaction_id, aspect_ratio, resolution }) => {
@@ -103,6 +107,9 @@ function createGeminiVideoTool(fields = {}) {
         }
       }
 
+      const effectiveAspectRatio = videoParams.aspect_ratio || aspect_ratio;
+      const effectiveResolution = videoParams.resolution || resolution;
+
       const body = { model: videoModel, input };
       if (previous_interaction_id) {
         body.previous_interaction_id = previous_interaction_id;
@@ -110,18 +117,19 @@ function createGeminiVideoTool(fields = {}) {
       /** Both live inside `response_format` alongside `type: 'video'`. At the
        *  top level the API rejects the request, which is what three failed
        *  generations reported as an aspect_ratio error. */
-      if (aspect_ratio || resolution) {
+      if (effectiveAspectRatio || effectiveResolution) {
         body.response_format = {
           type: 'video',
-          ...(aspect_ratio ? { aspect_ratio } : {}),
-          ...(resolution ? { resolution } : {}),
+          ...(effectiveAspectRatio ? { aspect_ratio: effectiveAspectRatio } : {}),
+          ...(effectiveResolution ? { resolution: effectiveResolution } : {}),
         };
       }
 
       logger.debug('[GeminiVideoGen] Generating video', {
         videoModel,
-        aspect_ratio,
-        resolution,
+        aspect_ratio: effectiveAspectRatio,
+        resolution: effectiveResolution,
+        overridden: Object.keys(videoParams).length > 0,
         editing: !!previous_interaction_id,
       });
 
@@ -171,8 +179,8 @@ function createGeminiVideoTool(fields = {}) {
           text:
             'Video generated.' +
             (interaction?.id ? `\n\ninteraction_id: "${interaction.id}"` : '') +
-            `\nresolution: ${resolution || '720p'}` +
-            `\naspect_ratio: ${aspect_ratio || '16:9'}`,
+            `\nresolution: ${effectiveResolution || '720p'}` +
+            `\naspect_ratio: ${effectiveAspectRatio || '16:9'}`,
         },
       ];
 

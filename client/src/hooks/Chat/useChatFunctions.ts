@@ -37,6 +37,7 @@ import {
   getRouteChatProjectId,
   stripStreamedIndexStamps,
 } from '~/utils';
+import { videoParamsAtom, toToolSettings } from '~/components/Chat/Input/VideoParams';
 import useFocusRegeneratedResponse from '~/hooks/Chat/useFocusRegeneratedResponse';
 import useGetConversation from '~/hooks/Conversations/useGetConversation';
 import useCodeApprovalMode from '~/hooks/Agents/useCodeApprovalMode';
@@ -407,6 +408,9 @@ export default function useChatFunctions({
     setShowStopButton(false);
 
     const ephemeralAgent = getEphemeralAgent(conversationId ?? Constants.NEW_CONVO);
+    /** Sent on every turn; the server reads the entry only while building the
+     *  tool it belongs to, so a conversation without that tool ignores it. */
+    const toolSettings = toToolSettings(jotaiStore.get(videoParamsAtom));
     /**
      * Manual skill selection resolution:
      *  - Explicit `overrideManualSkills` wins (regenerate / save-and-submit
@@ -768,6 +772,7 @@ export default function useChatFunctions({
       editPrefixLength,
       addedConvo,
       manualSkills: manualSkills.length > 0 ? manualSkills : undefined,
+      toolSettings,
       codeApprovalMode,
       codeEnvironmentMode,
       codeWorkspaces,

@@ -27,6 +27,7 @@ const {
   codeExecutionAuthHeaders,
   resolveGeminiImageModel,
   resolveGeminiVideoModel,
+  resolveGeminiVideoParams,
   resolveOpenAIImageModel,
   resolveCodeExecutionContext,
 } = require('@librechat/api');
@@ -272,6 +273,10 @@ const loadTools = async ({
         imageFiles,
         fileStrategy,
         videoModel: resolveGeminiVideoModel(agent?.tool_options),
+        videoParams: resolveGeminiVideoParams({
+          toolOptions: agent?.tool_options,
+          requestParams: options.req?.body?.toolSettings,
+        }),
       });
     },
     gemini_image_gen: async (_toolContextMap, dynamicToolContextMap) => {

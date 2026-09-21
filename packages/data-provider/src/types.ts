@@ -117,6 +117,16 @@ export type TEndpointOption = Pick<
   clientOptions?: Record<string, unknown>;
 };
 
+/**
+ * Per-turn tool settings the user picked in the composer, keyed by tool id and
+ * shaped like an agent's `tool_options` so both reach a tool the same way.
+ *
+ * These are a deliberate choice for this one request, so they take precedence
+ * over what the model asks for: a user who sets 9:16 and then writes "make it
+ * cinematic" expects a vertical video, not the model's reading of the adjective.
+ */
+export type TToolSettings = { [toolId: string]: { [param: string]: string } };
+
 export type TEphemeralAgent = {
   mcp?: string[];
   web_search?: boolean;
@@ -152,6 +162,7 @@ export type TPayload = Partial<TMessage> &
     messages?: TMessages;
     isTemporary: boolean;
     ephemeralAgent?: TEphemeralAgent | null;
+    toolSettings?: TToolSettings | null;
     editedContent?: TEditedContent | null;
     /** Added conversation for multi-convo feature */
     addedConvo?: TConversation;
@@ -247,6 +258,8 @@ export type TSubmission = {
   addedConvo?: TConversation;
   /** Skills the user invoked via the `$` popover for this submission. */
   manualSkills?: string[];
+  /** Tool settings chosen in the composer for this submission. */
+  toolSettings?: TToolSettings | null;
   /** Conversation-scoped preference for code tool approval behavior. */
   codeApprovalMode?: CodeApprovalMode;
   /** Immutable conversation choice for attached code execution. */

@@ -1,4 +1,4 @@
-import type { AgentToolOptions } from 'librechat-data-provider';
+import type { AgentToolOptions, TToolSettings } from 'librechat-data-provider';
 import type { ExtendedJsonSchema } from '../registry/schema';
 import { resolveAgentImageModel } from './images';
 
@@ -14,6 +14,52 @@ export function resolveGeminiVideoModel(toolOptions?: AgentToolOptions | null): 
     deploymentModel: process.env.GEMINI_VIDEO_MODEL,
     fallbackModel: DEFAULT_GEMINI_VIDEO_MODEL,
   });
+}
+
+export const GEMINI_VIDEO_ASPECT_RATIOS = ['16:9', '9:16'] as const;
+export const GEMINI_VIDEO_RESOLUTIONS = ['360p', '720p', '1080p', '4k'] as const;
+
+export type GeminiVideoAspectRatio = (typeof GEMINI_VIDEO_ASPECT_RATIOS)[number];
+export type GeminiVideoResolution = (typeof GEMINI_VIDEO_RESOLUTIONS)[number];
+
+export interface GeminiVideoParams {
+  aspect_ratio?: GeminiVideoAspectRatio;
+  resolution?: GeminiVideoResolution;
+}
+
+const isAspectRatio = (value?: string): value is GeminiVideoAspectRatio =>
+  GEMINI_VIDEO_ASPECT_RATIOS.includes(value as GeminiVideoAspectRatio);
+
+const isResolution = (value?: string): value is GeminiVideoResolution =>
+  GEMINI_VIDEO_RESOLUTIONS.includes(value as GeminiVideoResolution);
+
+/**
+ * Video settings that override what the model asks for on this one call.
+ *
+ * The request wins over the agent because it is the more deliberate choice: a
+ * user who changed the control in the composer did so for this shot. Values
+ * outside the API's enums are dropped rather than forwarded, so a stale client
+ * cannot push the provider into rejecting the whole generation.
+ */
+export function resolveGeminiVideoParams({
+  toolOptions,
+  requestParams,
+  toolId = 'gemini_video_gen',
+}: {
+  toolOptions?: AgentToolOptions | null;
+  requestParams?: TToolSettings | null;
+  toolId?: string;
+}): GeminiVideoParams {
+  const fromAgent = toolOptions?.[toolId];
+  const fromRequest = requestParams?.[toolId];
+
+  const aspectRatio = fromRequest?.aspect_ratio?.trim() || fromAgent?.aspect_ratio?.trim();
+  const resolution = fromRequest?.resolution?.trim() || fromAgent?.resolution?.trim();
+
+  return {
+    ...(isAspectRatio(aspectRatio) ? { aspect_ratio: aspectRatio } : {}),
+    ...(isResolution(resolution) ? { resolution } : {}),
+  };
 }
 
 const DEFAULT_GEMINI_VIDEO_GEN_DESCRIPTION =

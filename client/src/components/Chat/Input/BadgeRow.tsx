@@ -17,6 +17,7 @@ import { BadgeRowProvider } from '~/Providers';
 import ToolsDropdown from './ToolsDropdown';
 import { useChatBadges } from '~/hooks';
 import ToolDialogs from './ToolDialogs';
+import VideoParams from './VideoParams';
 import FileSearch from './FileSearch';
 import Artifacts from './Artifacts';
 import MCPSelect from './MCPSelect';
@@ -382,6 +383,8 @@ function BadgeRow({
             <MCPSelect />
           </>
         )}
+        {/* Agent-scoped, so it renders outside the ephemeral-badge gate. */}
+        <VideoParams />
         {ghostBadge && (
           <div
             className="ghost-badge h-full"

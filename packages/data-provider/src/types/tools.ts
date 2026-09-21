@@ -116,6 +116,17 @@ export type ToolOptions = {
    * one. Unset falls back to the deployment default.
    */
   image_model?: string;
+  /**
+   * Default video shape for this agent, overridden per turn by the composer's
+   * controls. Consumed by `gemini_video_gen`; unset leaves the choice to the
+   * model, and then to the provider's own default.
+   */
+  aspect_ratio?: string;
+  /**
+   * Default video resolution for this agent, overridden per turn by the
+   * composer's controls. Consumed by `gemini_video_gen`.
+   */
+  resolution?: string;
 };
 
 /**
