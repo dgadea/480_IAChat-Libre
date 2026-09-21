@@ -153,6 +153,12 @@ describe('toDocumentFilename', () => {
     expect(toDocumentFilename('Informe: Q4/2026', 'pdf')).toBe('Informe Q4 2026.pdf');
   });
 
+  it('strips control characters a title should never carry into a storage key', () => {
+    const title = 'Informe' + String.fromCharCode(0) + String.fromCharCode(31) + 'Q4';
+    expect(toDocumentFilename(title, 'docx')).toBe('Informe Q4.docx');
+    expect(toDocumentFilename(`a${String.fromCharCode(127)}b`, 'pdf')).toBe('a b.pdf');
+  });
+
   it('falls back when the title reduces to nothing', () => {
     expect(toDocumentFilename('///', 'docx')).toBe('document.docx');
     expect(toDocumentFilename('   ', 'pdf')).toBe('document.pdf');
