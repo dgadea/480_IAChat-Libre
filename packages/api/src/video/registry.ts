@@ -1,4 +1,4 @@
-import { DEFAULT_VIDEO_MAX_FILE_SIZE_MB } from 'librechat-data-provider';
+import { DEFAULT_VIDEO_MAX_FILE_SIZE_MB, extractEnvVariable } from 'librechat-data-provider';
 import type {
   AgentToolOptions,
   TVideoCapabilities,
@@ -160,6 +160,9 @@ export function resolveVideoSelection({
   return choices[0];
 }
 
+const fromEnv = (value?: string): string | undefined =>
+  value == null ? undefined : extractEnvVariable(value);
+
 /**
  * Builds the adapter for one selection. Throws when the config names an adapter
  * that no factory implements, so a typo in `librechat.yaml` fails loudly at use
@@ -183,12 +186,15 @@ export function createVideoAdapter({
     throw new Error(`Unknown video adapter "${provider.adapter}". Available: ${known}.`);
   }
 
+  /** `loadCustomConfig` does not interpolate the file, so a provider written the
+   *  way every other credential in `librechat.yaml` is written — `${VAR}` —
+   *  would otherwise be sent to the API verbatim as the key. */
   const resolved: ResolvedVideoProvider = {
     name: providerName,
     adapter: provider.adapter,
-    apiKey: provider.apiKey,
-    apiSecret: provider.apiSecret,
-    baseURL: provider.baseURL,
+    apiKey: fromEnv(provider.apiKey),
+    apiSecret: fromEnv(provider.apiSecret),
+    baseURL: fromEnv(provider.baseURL),
     models: provider.models,
   };
   return factory(resolved);

@@ -176,6 +176,45 @@ describe('createVideoAdapter', () => {
     ).toThrow(/Unknown video adapter "gemini-omni". Available: gemini_omni/);
   });
 
+  it('sends the credential an environment reference names, not the reference', async () => {
+    process.env.VIDEO_TEST_KEY = 'resolved-key';
+    const originalFetch = global.fetch;
+    const urls: string[] = [];
+    global.fetch = Object.assign(
+      (input: URL | RequestInfo): Promise<Response> => {
+        urls.push(String(input));
+        return Promise.resolve(
+          Response.json({ steps: [{ content: [{ type: 'video', data: 'AA==' }] }] }),
+        );
+      },
+      { preconnect: originalFetch.preconnect },
+    );
+
+    try {
+      const adapter = createVideoAdapter({
+        config: {
+          maxFileSizeMB: 100,
+          providers: {
+            env: {
+              adapter: 'gemini_omni',
+              apiKey: '${VIDEO_TEST_KEY}',
+              models: [{ name: 'gemini-omni-1.1-flash' }],
+            },
+          },
+        },
+        providerName: 'env',
+      });
+
+      await adapter.generate({ prompt: 'a cat', model: 'gemini-omni-1.1-flash' });
+
+      expect(urls[0]).toContain('key=resolved-key');
+      expect(urls[0]).not.toContain('VIDEO_TEST_KEY');
+    } finally {
+      global.fetch = originalFetch;
+      delete process.env.VIDEO_TEST_KEY;
+    }
+  });
+
   it('throws for a provider that is not configured at all', () => {
     expect(() => createVideoAdapter({ config, providerName: 'absent' })).toThrow(
       /Video provider "absent" is not configured/,
