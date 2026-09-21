@@ -4,16 +4,14 @@ version: 1.3.16
 cache: true
 
 # El disco de Railway es efímero: cada deploy levanta un contenedor limpio y se
-# lleva todo lo que generaron los agentes. Con `local`, una imagen creada antes
-# del último deploy ya no existe, y pasársela a la tool de video falla con
-# ENOENT.
+# lleva todo lo que generaron los agentes, los avatares de los agentes y los
+# archivos que suban los usuarios. `s3` los manda a R2, que sobrevive al deploy.
 #
-# Descomentar SOLO cuando el bucket y las credenciales estén cargadas en
-# Railway (AWS_ENDPOINT_URL, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY,
-# AWS_REGION, AWS_BUCKET_NAME, y AWS_FORCE_PATH_STYLE en proveedores
-# path-style como R2 o MinIO). Activarlo sin credenciales rompe el guardado de
-# archivos por completo, que es peor que perderlos en cada deploy.
-# fileStrategy: s3
+# Requiere en Railway: AWS_ENDPOINT_URL, AWS_ACCESS_KEY_ID,
+# AWS_SECRET_ACCESS_KEY, AWS_REGION, AWS_BUCKET_NAME y AWS_FORCE_PATH_STYLE
+# (R2 no sirve virtual-hosted style). Sin credenciales, el guardado de archivos
+# falla por completo.
+fileStrategy: s3
 
 # Solo estos dominios pueden REGISTRARSE (y usar "olvidé mi contraseña"
 # y login social). El login local de cuentas ya existentes no se filtra.
