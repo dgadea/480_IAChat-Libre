@@ -73,111 +73,120 @@ endpoints:
           - name: grok-4.3
             description: 'Uso general'
 
-# Lista curada de modelos, al estilo de la app de Gemini: el nombre con versión
-# arriba y, debajo, costo relativo más para qué sirve.
+# MENU CURADO — DESACTIVADO POR AHORA
 #
-# La escala $/$$/$$$ va sobre el precio de SALIDA por 1M, que es el que domina
-# en chat: $ hasta 4 dólares, $$ hasta 15, $$$ por encima. Si cambian las
-# tarifas del proveedor hay que revisarla — no se calcula sola.
+# Todo el bloque `modelSpecs` quedó comentado a pedido: mientras la escala
+# $/$$/$$$ no esté revisada, el selector muestra los modelos crudos de cada
+# proveedor. Para volver al menú curado alcanza con descomentar de acá hasta
+# el final del archivo — no hay nada más que tocar, `interface.modelSelect`
+# ya está en true y no depende de esto.
+
+# # Lista curada de modelos, al estilo de la app de Gemini: el nombre con versión
+# # arriba y, debajo, costo relativo más para qué sirve.
+# #
+# # La escala $/$$/$$$ va sobre el precio de SALIDA por 1M, que es el que domina
+# # en chat: $ hasta 4 dólares, $$ hasta 15, $$$ por encima. Si cambian las
+# # tarifas del proveedor hay que revisarla — no se calcula sola.
+# #
+# # `enforce` queda en false a propósito: con true, el servidor rechaza toda
+# # petición que no lleve un `spec` (`buildEndpointOption.js:99`), y un agente no
+# # lleva ninguno — seleccionarlo devolvía "No model spec selected" y la interfaz
+# # se quedaba muda. Quien oculta el listado crudo es `interface.modelSelect`.
+# #
+# # `softDefault` en vez de `default` por la misma razón: un `default` duro se
+# # impone antes de mirar la última selección (`utils/endpoints.ts:435`), así que
+# # pisaría el agente elegido al abrir un chat nuevo.
+# modelSpecs:
+#   enforce: false
+#   prioritize: true
+#   # Sin `addedEndpoints`: la lista no se restringe. Con `['agents']`, agents era
+#   # el único que podía pasar el filtro de `useEndpoints.ts`, así que cualquier
+#   # motivo para descartarlo dejaba el selector sin ningún endpoint — y sin los
+#   # agentes, que es lo que se buscaba conservar.
+#   list:
+#     - name: flash-lite
+#       label: 'Gemini 3.1 Flash-Lite'
+#       description: '$ · Respuestas rápidas y económicas'
+#       iconURL: google
+#       order: 1
+#       preset:
+#         endpoint: google
+#         model: gemini-3.1-flash-lite
 #
-# `enforce` queda en false a propósito: con true, el servidor rechaza toda
-# petición que no lleve un `spec` (`buildEndpointOption.js:99`), y un agente no
-# lleva ninguno — seleccionarlo devolvía "No model spec selected" y la interfaz
-# se quedaba muda. Quien oculta el listado crudo es `interface.modelSelect`.
+#     - name: flash
+#       label: 'Gemini 3.8 Flash'
+#       description: '$ · Asistencia general'
+#       iconURL: google
+#       order: 2
+#       softDefault: true
+#       preset:
+#         endpoint: google
+#         model: gemini-3.8-flash
 #
-# `softDefault` en vez de `default` por la misma razón: un `default` duro se
-# impone antes de mirar la última selección (`utils/endpoints.ts:435`), así que
-# pisaría el agente elegido al abrir un chat nuevo.
-modelSpecs:
-  enforce: false
-  prioritize: true
-  # Sin `addedEndpoints`: la lista no se restringe. Con `['agents']`, agents era
-  # el único que podía pasar el filtro de `useEndpoints.ts`, así que cualquier
-  # motivo para descartarlo dejaba el selector sin ningún endpoint — y sin los
-  # agentes, que es lo que se buscaba conservar.
-  list:
-    - name: flash-lite
-      label: 'Gemini 3.1 Flash-Lite'
-      description: '$ · Respuestas rápidas y económicas'
-      iconURL: google
-      order: 1
-      preset:
-        endpoint: google
-        model: gemini-3.1-flash-lite
-
-    - name: flash
-      label: 'Gemini 3.8 Flash'
-      description: '$ · Asistencia general'
-      iconURL: google
-      order: 2
-      softDefault: true
-      preset:
-        endpoint: google
-        model: gemini-3.8-flash
-
-    - name: pro
-      label: 'Gemini 3.1 Pro'
-      description: '$$ · Razonamiento avanzado'
-      iconURL: google
-      order: 3
-      preset:
-        endpoint: google
-        model: gemini-3.1-pro-preview
-
-    - name: claude-sonnet
-      label: 'Claude Sonnet 5'
-      description: '$$ · Redacción y análisis de textos largos'
-      iconURL: anthropic
-      order: 4
-      preset:
-        endpoint: anthropic
-        model: claude-sonnet-5
-
-    - name: claude-opus
-      label: 'Claude Opus 5'
-      description: '$$$ · Máxima capacidad para trabajo complejo'
-      iconURL: anthropic
-      order: 5
-      preset:
-        endpoint: anthropic
-        model: claude-opus-5
-
-    # `gpt-5.6` pelado no existe en la API: solo las variantes -luna, -sol y
-    # -terra. `-sol` queda fuera porque no tiene tarifa propia — hereda la
-    # genérica de `gpt-5.6` por coincidencia de prefijo, que puede no ser la suya.
-    - name: gpt-rapido
-      label: 'GPT 5.6 Luna'
-      description: '$ · Tareas simples, el más económico'
-      iconURL: openAI
-      order: 6
-      preset:
-        endpoint: openAI
-        model: gpt-5.6-luna
-
-    - name: gpt
-      label: 'GPT 5.6 Terra'
-      description: '$$ · Uso general'
-      iconURL: openAI
-      order: 7
-      preset:
-        endpoint: openAI
-        model: gpt-5.6-terra
-
-    # $10/$50 por 1M: trece veces Gemini Flash en salida. La descripción avisa
-    # del costo para que no sea la opción por reflejo.
-    - name: gpt-maximo
-      label: 'GPT 6 Astra'
-      description: '$$$ · El más capaz, y el más caro del menú'
-      iconURL: openAI
-      order: 8
-      preset:
-        endpoint: openAI
-        model: gpt-6-astra
-
-    - name: grok
-      label: 'Grok 4.5'
-      description: '$$ · Segunda opinión, de otro proveedor'
-      order: 9
-      preset:
-        endpoint: xAI
-        model: grok-4.5
+#     - name: pro
+#       label: 'Gemini 3.1 Pro'
+#       description: '$$ · Razonamiento avanzado'
+#       iconURL: google
+#       order: 3
+#       preset:
+#         endpoint: google
+#         model: gemini-3.1-pro-preview
+#
+#     - name: claude-sonnet
+#       label: 'Claude Sonnet 5'
+#       description: '$$ · Redacción y análisis de textos largos'
+#       iconURL: anthropic
+#       order: 4
+#       preset:
+#         endpoint: anthropic
+#         model: claude-sonnet-5
+#
+#     - name: claude-opus
+#       label: 'Claude Opus 5'
+#       description: '$$$ · Máxima capacidad para trabajo complejo'
+#       iconURL: anthropic
+#       order: 5
+#       preset:
+#         endpoint: anthropic
+#         model: claude-opus-5
+#
+#     # `gpt-5.6` pelado no existe en la API: solo las variantes -luna, -sol y
+#     # -terra. `-sol` queda fuera porque no tiene tarifa propia — hereda la
+#     # genérica de `gpt-5.6` por coincidencia de prefijo, que puede no ser la suya.
+#     - name: gpt-rapido
+#       label: 'GPT 5.6 Luna'
+#       description: '$ · Tareas simples, el más económico'
+#       iconURL: openAI
+#       order: 6
+#       preset:
+#         endpoint: openAI
+#         model: gpt-5.6-luna
+#
+#     - name: gpt
+#       label: 'GPT 5.6 Terra'
+#       description: '$$ · Uso general'
+#       iconURL: openAI
+#       order: 7
+#       preset:
+#         endpoint: openAI
+#         model: gpt-5.6-terra
+#
+#     # $10/$50 por 1M: trece veces Gemini Flash en salida. La descripción avisa
+#     # del costo para que no sea la opción por reflejo.
+#     - name: gpt-maximo
+#       label: 'GPT 6 Astra'
+#       description: '$$$ · El más capaz, y el más caro del menú'
+#       iconURL: openAI
+#       order: 8
+#       preset:
+#         endpoint: openAI
+#         model: gpt-6-astra
+#
+#     - name: grok
+#       label: 'Grok 4.5'
+#       description: '$$ · Segunda opinión, de otro proveedor'
+#       order: 9
+#       preset:
+#         endpoint: xAI
+#         model: grok-4.5
+#
