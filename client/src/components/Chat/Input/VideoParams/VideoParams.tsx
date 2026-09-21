@@ -2,7 +2,15 @@ import { memo, useCallback, useMemo } from 'react';
 import { useAtom } from 'jotai';
 import { RectangleHorizontal, Monitor, Clapperboard, Volume2 } from 'lucide-react';
 import type { AspectRatio, Resolution, Treatment, Sound } from './state';
-import { ASPECT_RATIOS, RESOLUTIONS, TREATMENTS, SOUNDS, videoParamsAtom } from './state';
+import {
+  ASPECT_RATIOS,
+  RESOLUTIONS,
+  TREATMENTS,
+  SOUNDS,
+  videoParamsAtom,
+  DEFAULT_VIDEO_PARAMS,
+} from './state';
+import useResetOnConversationChange from './useResetOnConversationChange';
 import useHasVideoTool from './useHasVideoTool';
 import { useLocalize } from '~/hooks';
 import ParamMenu from './ParamMenu';
@@ -23,6 +31,9 @@ function VideoParams() {
   const localize = useLocalize();
   const [params, setParams] = useAtom(videoParamsAtom);
   const hasVideoTool = useHasVideoTool();
+
+  const reset = useCallback(() => setParams(DEFAULT_VIDEO_PARAMS), [setParams]);
+  useResetOnConversationChange(reset);
 
   const setAspectRatio = useCallback(
     (aspect_ratio: AspectRatio) => setParams((prev) => ({ ...prev, aspect_ratio })),

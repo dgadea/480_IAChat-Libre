@@ -1,5 +1,5 @@
+import { atom } from 'jotai';
 import type { TToolSettings } from 'librechat-data-provider';
-import { createStorageAtom } from '~/store/jotai-utils';
 
 export const VIDEO_TOOL_ID = 'gemini_video_gen';
 
@@ -23,25 +23,23 @@ export interface VideoParamsState {
   sound: Sound;
 }
 
-/** What the provider produces when the request names neither, mirrored here so
- *  the controls open on the value a generation would actually use. */
 export const DEFAULT_VIDEO_PARAMS: VideoParamsState = {
   aspect_ratio: '16:9',
   resolution: '720p',
   treatment: 'auto',
-  /** The provider generates audio natively and most clips are cut to a track
-   *  later, so silence is the useful default. It is prompt direction rather
-   *  than an API setting, so it asks for silence without guaranteeing it. */
+  /** The provider generates audio natively and these clips are usually cut to a
+   *  track later, so silence is the useful starting point. Prompt direction
+   *  rather than an API setting, so it asks for silence without guaranteeing it. */
   sound: 'silent',
 };
 
-/** A per-viewer convenience: someone shooting Reels keeps 9:16 across sessions
- *  rather than re-picking it every time. Nothing downstream depends on it
- *  surviving, so losing it to cleared site data costs a click. */
-export const videoParamsAtom = createStorageAtom<VideoParamsState>(
-  'videoParams',
-  DEFAULT_VIDEO_PARAMS,
-);
+/**
+ * Deliberately not persisted. A remembered 4k or 9:16 is a setting nobody chose
+ * for the clip in front of them, and each generation costs real money, so every
+ * session starts from the same known state rather than from whatever the last
+ * one was experimenting with.
+ */
+export const videoParamsAtom = atom<VideoParamsState>(DEFAULT_VIDEO_PARAMS);
 
 /**
  * The submission shape. Keyed by tool id so the request carries settings the
