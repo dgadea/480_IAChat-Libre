@@ -77,6 +77,8 @@ export * from './prompts';
 export * from './projects';
 /* Conversations */
 export * from './conversations';
+/* Email */
+export * from './email';
 /* Skills */
 export * from './schedules';
 export * from './schedules/service';

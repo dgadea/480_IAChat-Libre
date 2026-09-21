@@ -4,7 +4,12 @@ const FormData = require('form-data');
 const nodemailer = require('nodemailer');
 const handlebars = require('handlebars');
 const { logger } = require('@librechat/data-schemas');
-const { logAxiosError, isEnabled, readFileAsString } = require('@librechat/api');
+const {
+  logAxiosError,
+  isEnabled,
+  readFileAsString,
+  sendEmailViaSendGrid,
+} = require('@librechat/api');
 
 /**
  * Sends an email using Mailgun API.
@@ -110,6 +115,20 @@ const sendEmail = async ({ email, subject, payload, template, throwError = true 
         to: toAddress,
         subject: subject,
         html: html,
+      });
+    }
+
+    /** SendGrid over HTTPS, for hosts that block outbound SMTP entirely — on
+     *  Railway every one of 25/465/587/2525 times out, so the SMTP path can
+     *  never connect regardless of credentials. */
+    if (process.env.SENDGRID_API_KEY) {
+      logger.debug('[sendEmail] Using SendGrid provider');
+      return await sendEmailViaSendGrid({
+        apiKey: process.env.SENDGRID_API_KEY,
+        from: { email: fromEmail, name: fromName },
+        to: { email, name: payload.name },
+        subject,
+        html,
       });
     }
 

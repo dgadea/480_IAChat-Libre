@@ -9,11 +9,13 @@ jest.mock('@librechat/api', () => ({
   logAxiosError: jest.fn(),
   isEnabled: jest.fn((val) => val === 'true' || val === true),
   readFileAsString: jest.fn(),
+  sendEmailViaSendGrid: jest.fn(),
 }));
 
 const savedEnv = { ...process.env };
 
 const mockSendMail = jest.fn().mockResolvedValue({ messageId: 'test-id' });
+const mockSendEmailViaSendGrid = jest.fn().mockResolvedValue({ accepted: ['user@example.com'] });
 
 beforeEach(() => {
   jest.clearAllMocks();
@@ -30,6 +32,7 @@ beforeEach(() => {
   delete process.env.EMAIL_ENCRYPTION;
   delete process.env.EMAIL_ENCRYPTION_HOSTNAME;
   delete process.env.EMAIL_ALLOW_SELFSIGNED;
+  delete process.env.SENDGRID_API_KEY;
 
   readFileAsString.mockResolvedValue({ content: '<p>{{name}}</p>' });
   nodemailer.createTransport.mockReturnValue({ sendMail: mockSendMail });
@@ -52,6 +55,7 @@ function loadSendEmail() {
     logAxiosError: jest.fn(),
     isEnabled: jest.fn((val) => val === 'true' || val === true),
     readFileAsString: jest.fn().mockResolvedValue({ content: '<p>{{name}}</p>' }),
+    sendEmailViaSendGrid: mockSendEmailViaSendGrid,
   }));
   return require('../sendEmail');
 }
@@ -139,5 +143,47 @@ describe('sendEmail SMTP auth assembly', () => {
     await sendEmail(baseParams);
 
     expect(freshLogger.warn).not.toHaveBeenCalled();
+  });
+});
+
+describe('sendEmail provider selection', () => {
+  it('sends over SendGrid HTTP when SENDGRID_API_KEY is set, without opening SMTP', async () => {
+    process.env.SENDGRID_API_KEY = 'SG.key';
+    process.env.EMAIL_FROM_NAME = 'Bureau';
+    const sendEmail = loadSendEmail();
+    const { createTransport } = require('nodemailer');
+
+    await sendEmail(baseParams);
+
+    expect(createTransport).not.toHaveBeenCalled();
+    expect(mockSendEmailViaSendGrid).toHaveBeenCalledTimes(1);
+    expect(mockSendEmailViaSendGrid).toHaveBeenCalledWith({
+      apiKey: 'SG.key',
+      from: { email: 'noreply@example.com', name: 'Bureau' },
+      to: { email: 'user@example.com', name: 'User' },
+      subject: 'Test',
+      html: '<p>User</p>',
+    });
+  });
+
+  it('still uses SMTP when SENDGRID_API_KEY is absent', async () => {
+    const sendEmail = loadSendEmail();
+    const { createTransport } = require('nodemailer');
+
+    await sendEmail(baseParams);
+
+    expect(mockSendEmailViaSendGrid).not.toHaveBeenCalled();
+    expect(createTransport).toHaveBeenCalledTimes(1);
+  });
+
+  it('prefers Mailgun over SendGrid when both are configured', async () => {
+    process.env.SENDGRID_API_KEY = 'SG.key';
+    process.env.MAILGUN_API_KEY = 'mg-key';
+    process.env.MAILGUN_DOMAIN = 'mg.example.com';
+    const sendEmail = loadSendEmail();
+
+    await sendEmail({ ...baseParams, throwError: false });
+
+    expect(mockSendEmailViaSendGrid).not.toHaveBeenCalled();
   });
 });
