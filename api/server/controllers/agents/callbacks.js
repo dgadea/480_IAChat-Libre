@@ -27,6 +27,7 @@ const {
   HOST_FILE_AUTHORING_ARTIFACT_KEY,
   isCodeSessionToolName,
   isCodeArtifactToolOutput,
+  isGeneratedDocumentArtifact,
   getModelRefusalInfo,
   shouldSignalSandboxStart,
   getToolInputValidationDetails,
@@ -1120,6 +1121,30 @@ function createToolEndCallback({ req, res, artifactPromises, streamId = null, jo
       return;
     }
 
+    if (isGeneratedDocumentArtifact(output.artifact)) {
+      for (const document of output.artifact.documents) {
+        artifactPromises.push(
+          (async () => {
+            /* The tool already stored the file; all that is left is stamping
+             * the run identity the tool could not know and emitting it. */
+            const fileMetadata = Object.assign({}, document, {
+              messageId: metadata.run_id,
+              toolCallId: output.tool_call_id,
+              conversationId: metadata.thread_id,
+            });
+            if (isStreamWritable(res, streamId)) {
+              writeAttachment(res, streamId, fileMetadata, jobCreatedAt);
+            }
+            return fileMetadata;
+          })().catch((error) => {
+            logger.error('Error emitting generated document:', error);
+            return null;
+          }),
+        );
+      }
+      return;
+    }
+
     if (!isCodeArtifactToolOutput(output)) {
       return;
     }
@@ -1488,6 +1513,37 @@ function createResponsesToolEndCallback({ req, res, tracker, artifactPromises })
             return fileMetadata;
           })().catch((error) => {
             logger.error('Error processing artifact content:', error);
+            return null;
+          }),
+        );
+      }
+      return;
+    }
+
+    if (isGeneratedDocumentArtifact(output.artifact)) {
+      for (const document of output.artifact.documents) {
+        artifactPromises.push(
+          (async () => {
+            const fileMetadata = Object.assign({}, document, {
+              toolCallId: output.tool_call_id,
+            });
+            if (res.headersSent && !res.writableEnded) {
+              writeResponsesAttachment(
+                res,
+                tracker,
+                {
+                  file_id: fileMetadata.file_id,
+                  filename: fileMetadata.filename,
+                  type: fileMetadata.type,
+                  url: fileMetadata.filepath,
+                  tool_call_id: output.tool_call_id,
+                },
+                metadata,
+              );
+            }
+            return fileMetadata;
+          })().catch((error) => {
+            logger.error('Error emitting generated document:', error);
             return null;
           }),
         );

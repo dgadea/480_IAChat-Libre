@@ -23,6 +23,7 @@ jest.mock('@librechat/api', () => ({
       : null,
   ),
   isCodeArtifactToolOutput: jest.requireActual('@librechat/api').isCodeArtifactToolOutput,
+  isGeneratedDocumentArtifact: jest.requireActual('@librechat/api').isGeneratedDocumentArtifact,
   isCodeSessionToolName: jest.requireActual('@librechat/api').isCodeSessionToolName,
   collectToolCallIds: jest.requireActual('@librechat/api').collectToolCallIds,
 }));

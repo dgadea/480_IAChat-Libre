@@ -372,6 +372,32 @@ describe('Tool Handlers', () => {
       expect(loadedTools[0].name).toBe(ASK_USER_QUESTION_TOOL_NAME);
     });
 
+    it('loads the document_gen tool for an agent', async () => {
+      const { loadedTools } = await loadTools({
+        user: fakeUser._id,
+        agent: { id: 'agent-doc' },
+        tools: ['document_gen'],
+        options: {
+          req: { user: { id: fakeUser._id.toString() }, config: { fileStrategy: 'local' } },
+        },
+        useSpecs: true,
+      });
+      expect(loadedTools).toHaveLength(1);
+      expect(loadedTools[0].name).toBe('document_gen');
+    });
+
+    /* `loadTools` swallows a constructor throw and logs it, so the
+     * agents-only guard shows up as the tool being absent rather than as a
+     * rejection. Asserting the empty result is what proves the guard runs. */
+    it('leaves out the document_gen tool outside an agent', async () => {
+      const { loadedTools } = await loadTools({
+        user: fakeUser._id,
+        tools: ['document_gen'],
+        useSpecs: true,
+      });
+      expect(loadedTools).toHaveLength(0);
+    });
+
     it('routes code file priming to the selected bridge worker', async () => {
       const bridgeWorkerId = 'principal-worker';
       const controller = new AbortController();

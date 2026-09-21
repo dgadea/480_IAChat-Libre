@@ -53,6 +53,7 @@ const {
   TraversaalSearch,
   StructuredWolfram,
   TavilySearchResults,
+  createDocumentTool,
   createGeminiImageTool,
   createGeminiVideoTool,
   createOpenAIImageTools,
@@ -247,6 +248,11 @@ const loadTools = async ({
         imageModel: resolveOpenAIImageModel(agent?.tool_options),
       });
     },
+    document_gen: async () =>
+      createDocumentTool({
+        isAgent: !!agent,
+        req: options.req,
+      }),
     gemini_video_gen: async (_toolContextMap, dynamicToolContextMap) => {
       const authFields = getAuthFields('gemini_video_gen');
       const authValues = await loadAuthValues({ userId: user, authFields, throwError: false });

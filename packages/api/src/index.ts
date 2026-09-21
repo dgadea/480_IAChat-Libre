@@ -90,6 +90,8 @@ export * from './user';
 export * from './plugins';
 /* Endpoints */
 export * from './endpoints';
+/* Documents */
+export * from './documents';
 /* Files */
 export * from './files';
 /* Images */

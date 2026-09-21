@@ -2601,6 +2601,24 @@ export const videoGenerationSchema = z.object({
 
 export type TVideoGenerationConfig = z.infer<typeof videoGenerationSchema>;
 
+/** Formats `document_gen` can produce. The tool's schema and its validation
+ *  both read this list, so a new renderer is one entry here. */
+export const documentFormatSchema = z.enum(['docx', 'pdf']);
+
+export type TDocumentFormat = z.infer<typeof documentFormatSchema>;
+
+export const documentGenerationSchema = z.object({
+  /** Formats offered to the model. Narrowing this is how an operator turns a
+   *  format off without touching the tool — a request for an excluded format
+   *  is refused rather than silently rendered as another one. */
+  formats: z.array(documentFormatSchema).nonempty().default(['docx', 'pdf']),
+  /** Ceiling on the markdown a single call may render. Documents are built in
+   *  memory, so this is what bounds one request's footprint. */
+  maxInputLength: z.number().int().positive().max(2_000_000).default(200_000),
+});
+
+export type TDocumentGenerationConfig = z.infer<typeof documentGenerationSchema>;
+
 export const memorySchema = z.object({
   disabled: z.boolean().optional(),
   validKeys: z.array(z.string()).optional(),
@@ -2888,6 +2906,7 @@ export const configSchema = z.object({
   langfuse: langfuseConfigSchema.optional(),
   memory: memorySchema.optional(),
   videoGeneration: videoGenerationSchema.optional(),
+  documentGeneration: documentGenerationSchema.optional(),
   summarization: summarizationConfigSchema.optional(),
   skillSync: skillSyncConfigSchema,
   secureImageLinks: z.boolean().optional(),

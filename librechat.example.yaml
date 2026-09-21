@@ -332,6 +332,16 @@ interface:
   # retentionMode: "all"; non-agent files still expire.
   # retainAgentFiles: false
 
+# Document generation (`document_gen` tool) settings
+# Omit the section entirely to keep the defaults below.
+# documentGeneration:
+#   # Formats offered to the model. Drop one to turn it off — a request for an
+#   # excluded format is refused rather than silently rendered as the other.
+#   formats: ['docx', 'pdf']
+#   # Ceiling on the Markdown a single call may render. Documents are built in
+#   # memory, so this bounds one request's footprint.
+#   maxInputLength: 200000
+
 # Example Cloudflare turnstile (optional)
 #turnstile:
 #  siteKey: "your-site-key-here"

@@ -187,5 +187,12 @@
         "optional": true
       }
     ]
+  },
+  {
+    "name": "Document Generation",
+    "pluginKey": "document_gen",
+    "description": "Write reports, proposals and letters to a downloadable Word (.docx) or PDF file.",
+    "icon": "assets/document_gen.svg",
+    "authConfig": []
   }
 ]
