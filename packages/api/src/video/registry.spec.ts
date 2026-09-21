@@ -19,12 +19,13 @@ const config: TVideoGenerationConfig = {
       apiKey: 'primary-key',
       models: [{ name: 'gemini-omni-1.1-flash' }],
     },
+    /** Stands for a provider whose adapter does not exist yet: the capability
+     *  overrides are the point, and attaching invented ones to a real model id
+     *  would put a configuration nobody can run in front of the next reader. */
     secondary: {
       adapter: 'gemini_omni',
       apiKey: 'secondary-key',
-      models: [
-        { name: 'gemini-omni-1.1-pro', capabilities: { durations: [5, 10], editing: false } },
-      ],
+      models: [{ name: 'queued-video-1', capabilities: { durations: [5, 10], editing: false } }],
     },
   },
 };
@@ -78,7 +79,7 @@ describe('listVideoModels', () => {
       },
       {
         provider: 'secondary',
-        model: 'gemini-omni-1.1-pro',
+        model: 'queued-video-1',
         description: undefined,
         capabilities: { durations: [5, 10], editing: false },
       },
@@ -123,7 +124,7 @@ describe('resolveVideoSelection', () => {
       requestedModel: 'sora-9',
     });
 
-    expect(selection?.model).toBe('gemini-omni-1.1-pro');
+    expect(selection?.model).toBe('queued-video-1');
   });
 });
 

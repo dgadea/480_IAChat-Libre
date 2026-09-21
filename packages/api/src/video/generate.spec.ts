@@ -67,7 +67,9 @@ describe('prepareVideoGeneration', () => {
       studio: {
         adapter: 'gemini_omni',
         apiKey: 'key',
-        models: [{ name: 'gemini-omni-1.1-pro', capabilities: { durations: [5, 10] } }],
+        /** A hypothetical model: Gemini Omni exposes no length control, so the
+         *  override that proves the merge cannot come from a real Omni id. */
+        models: [{ name: 'queued-video-1', capabilities: { durations: [5, 10] } }],
       },
     },
   };
