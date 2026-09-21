@@ -12,6 +12,7 @@ import {
   isImageAttachment,
   isInternalSandboxArtifact,
   isTextAttachment,
+  isVideoAttachment,
   renderAttachmentKey,
 } from './attachmentTypes';
 import { useLocalize, useAttachmentPreviewSync, useExpandCollapse } from '~/hooks';
@@ -435,6 +436,30 @@ const ImageAttachment = memo(({ attachment }: { attachment: TAttachment }) => {
   );
 });
 
+/**
+ * Generated clips play in place. Unlike `<Image>` there is no intrinsic size to
+ * reserve, so the element sizes itself from the loaded metadata.
+ */
+const VideoAttachment = memo(({ attachment }: { attachment: TAttachment }) => {
+  const localize = useLocalize();
+  const { filepath = null, filename } = attachment as TFile & TAttachmentMetadata;
+  return (
+    <div className="video-attachment-container">
+      {/* The provider returns audio but no caption track, and a decorative
+          empty <track> would claim captions exist. */}
+      {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
+      <video
+        controls
+        preload="metadata"
+        src={filepath ?? ''}
+        className="my-2 h-auto w-full max-w-lg rounded-lg"
+        aria-label={filename ?? localize('com_ui_generated_video')}
+      />
+    </div>
+  );
+});
+VideoAttachment.displayName = 'VideoAttachment';
+
 interface PanelArtifactProps {
   attachment: TAttachment;
   /** Pre-classified type from the routing decision tree, threaded down so
@@ -486,6 +511,9 @@ export default function Attachment({ attachment }: { attachment?: TAttachment })
   if (isImageAttachment(attachment)) {
     return <ImageAttachment attachment={attachment} />;
   }
+  if (isVideoAttachment(attachment)) {
+    return <VideoAttachment attachment={attachment} />;
+  }
   // Single classification call. The result is threaded into
   // `PanelArtifact` -> `fileToArtifact` so the panel path doesn't
   // re-run `detectArtifactTypeFromFile` a second time.
@@ -512,6 +540,7 @@ export function AttachmentGroup({ attachments }: { attachments?: TAttachment[] }
 
   const fileAttachments: TAttachment[] = [];
   const imageAttachments: TAttachment[] = [];
+  const videoAttachments: TAttachment[] = [];
   const textAttachments: TAttachment[] = [];
   /* Pending-preview chips share this row with their future selves —
    * `type` is null while pending so the renderer falls back to
@@ -529,6 +558,10 @@ export function AttachmentGroup({ attachments }: { attachments?: TAttachment[] }
     }
     if (isImageAttachment(attachment)) {
       imageAttachments.push(attachment);
+      return;
+    }
+    if (isVideoAttachment(attachment)) {
+      videoAttachments.push(attachment);
       return;
     }
     if ((attachment as Partial<TFile>).status === 'pending') {
@@ -563,6 +596,7 @@ export function AttachmentGroup({ attachments }: { attachments?: TAttachment[] }
   const orderedPanel = [...panelRow].sort(byEntrySalience);
   mermaidArtifacts.sort(bySalience);
   imageAttachments.sort(bySalience);
+  videoAttachments.sort(bySalience);
 
   const downloadableFileAttachments = fileAttachments.filter((attachment) =>
     Boolean(attachment.filepath),
@@ -623,6 +657,16 @@ export function AttachmentGroup({ attachments }: { attachments?: TAttachment[] }
             <TextAttachment
               attachment={attachment}
               key={renderAttachmentKey('text', attachment, index)}
+            />
+          ))}
+        </div>
+      )}
+      {videoAttachments.length > 0 && (
+        <div className="mb-2 flex w-full max-w-full flex-col">
+          {videoAttachments.map((attachment, index) => (
+            <VideoAttachment
+              attachment={attachment}
+              key={renderAttachmentKey('video', attachment, index)}
             />
           ))}
         </div>

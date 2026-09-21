@@ -19,6 +19,8 @@ import { detectArtifactTypeFromFile } from '~/utils/artifacts';
  */
 const SANDBOX_PLACEHOLDER_LEAVES = /^_\.(?:dirkeep|gitkeep)-[0-9a-f]{6}$/i;
 
+const videoExtRegex = /\.(mp4|webm|mov|m4v|ogv)$/i;
+
 /**
  * Recovers the user-visible filename from the backend's sanitized form.
  *
@@ -153,6 +155,22 @@ export const isImageAttachment = (attachment: TAttachment): boolean => {
   return (
     imageExtRegex.test(attachment.filename) && width != null && height != null && filepath != null
   );
+};
+
+/**
+ * Generated clips carry the media type the provider declared, which
+ * `saveBase64Video` stores verbatim on the file record. The extension is a
+ * fallback for records written before that field was populated.
+ */
+export const isVideoAttachment = (attachment: TAttachment): boolean => {
+  const { type, filepath = null } = attachment as TFile & TAttachmentMetadata;
+  if (filepath == null) {
+    return false;
+  }
+  if (typeof type === 'string' && type.startsWith('video/')) {
+    return true;
+  }
+  return videoExtRegex.test(attachment.filename ?? '');
 };
 
 /**
