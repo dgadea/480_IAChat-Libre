@@ -1,6 +1,12 @@
 import { useEffect } from 'react';
 import { createSearchParams } from 'react-router-dom';
-import { LocalStorageKeys, isEphemeralAgentId, Constants } from 'librechat-data-provider';
+import {
+  Constants,
+  LocalStorageKeys,
+  isAgentsEndpoint,
+  isEphemeralAgentId,
+  isAssistantsEndpoint,
+} from 'librechat-data-provider';
 import {
   atom,
   selector,
@@ -110,6 +116,19 @@ const conversationByIndex = atomFamily<TConversation | null, string | number>({
           `${LocalStorageKeys.LAST_CONVO_SETUP}_${index}`,
           JSON.stringify(convoToStore),
         );
+
+        /** Remembered separately from the setup above so a new chat can open on
+         *  the last plain model. An agent or assistant is picked for a job, not
+         *  adopted as a default, and the setup key cannot tell the two apart
+         *  because it only ever holds the most recent conversation. */
+        if (
+          index === 0 &&
+          newValue.endpoint &&
+          !isAgentsEndpoint(newValue.endpoint) &&
+          !isAssistantsEndpoint(newValue.endpoint)
+        ) {
+          localStorage.setItem(LocalStorageKeys.LAST_CHAT_ENDPOINT, newValue.endpoint);
+        }
 
         const disableParams = newValue.disableParams === true;
         const shouldUpdateParams =

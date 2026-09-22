@@ -4305,6 +4305,12 @@ export enum LocalStorageKeys {
   LAST_CONVO_SETUP = 'lastConversationSetup',
   /** Key for the last selected model. */
   LAST_MODEL = 'lastSelectedModel',
+  /**
+   * Key for the last endpoint chosen that was a plain model rather than an
+   * agent or assistant. A new chat opens on this, so picking an agent for one
+   * conversation does not make it the starting point of every later one.
+   */
+  LAST_CHAT_ENDPOINT = 'lastChatEndpoint',
   /** Key for the last selected tools. */
   LAST_TOOLS = 'lastSelectedTools',
   /** Key for the last selected spec by name*/

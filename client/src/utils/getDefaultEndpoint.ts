@@ -1,3 +1,4 @@
+import { LocalStorageKeys } from 'librechat-data-provider';
 import type {
   TPreset,
   TConversation,
@@ -23,6 +24,23 @@ const getEndpointFromSetup = (
     console.warn(`Illegal target endpoint ${targetEndpoint}`, endpointsConfig);
   }
   return null;
+};
+
+/**
+ * The last endpoint the user chatted with that was a plain model.
+ *
+ * Preferred over the stored setup so that picking an agent for one conversation
+ * does not make it the starting point of every later one: the setup key only
+ * ever holds the most recent conversation, whatever kind it was.
+ */
+const getChatEndpointFromLocalStorage = (endpointsConfig: TEndpointsConfig) => {
+  try {
+    const endpoint = localStorage.getItem(LocalStorageKeys.LAST_CHAT_ENDPOINT);
+    return endpoint && endpointsConfig?.[endpoint] != null ? (endpoint as EModelEndpoint) : null;
+  } catch (error) {
+    console.error(error);
+    return null;
+  }
 };
 
 const getEndpointFromLocalStorage = (endpointsConfig: TEndpointsConfig) => {
@@ -57,6 +75,7 @@ const getDefaultEndpoint = ({
 }: TDefaultEndpoint): EModelEndpoint | undefined => {
   return (
     getEndpointFromSetup(convoSetup, endpointsConfig) ||
+    getChatEndpointFromLocalStorage(endpointsConfig) ||
     getEndpointFromLocalStorage(endpointsConfig) ||
     getDefinedEndpoint(endpointsConfig)
   );
