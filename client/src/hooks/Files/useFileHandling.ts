@@ -147,7 +147,6 @@ const useFileHandlingCore = (params: UseFileHandling | undefined, fileState: Fil
   const { showToast } = useToastContext();
   const [errors, setErrors] = useState<string[]>([]);
   const abortControllerRef = useRef<AbortController | null>(null);
-  const { startUploadTimer, clearUploadTimer } = useDelayedUploadToast();
   const { files, setFiles, conversation } = fileState;
   const filesRef = useRef(files);
   filesRef.current = files;
@@ -227,6 +226,11 @@ const useFileHandlingCore = (params: UseFileHandling | undefined, fileState: Fil
   });
   const fileConfigRef = useRef(fileConfig);
   fileConfigRef.current = fileConfig;
+  /** Declared after the file config so the delay window reflects the
+   *  deployment's storage rather than the built-in local-disk assumption. */
+  const { startUploadTimer, clearUploadTimer } = useDelayedUploadToast(
+    fileConfig?.uploadDelayNotice,
+  );
 
   const displayToast = useCallback(() => {
     if (errors.length > 1) {

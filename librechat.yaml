@@ -13,6 +13,16 @@ cache: true
 # falla por completo.
 fileStrategy: s3
 
+# El aviso de "la carga está tomando más tiempo del esperado" viene calibrado
+# para disco local: 5 segundos más 2 por cada MB. Con R2 hay un salto de red
+# extra y saltaba en subidas perfectamente normales — un aviso que suena
+# siempre deja de leerse. Medido desde el contenedor, R2 escribe 1 MB en ~400ms,
+# así que el tiempo se va en el tramo navegador-servidor y en el procesado.
+fileConfig:
+  uploadDelayNotice:
+    baseMs: 20000
+    perMbMs: 4000
+
 # Solo estos dominios pueden REGISTRARSE (y usar "olvidé mi contraseña"
 # y login social). El login local de cuentas ya existentes no se filtra.
 registration:

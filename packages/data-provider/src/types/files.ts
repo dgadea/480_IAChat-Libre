@@ -89,6 +89,12 @@ export type FileConfig = {
   stt?: {
     supportedMimeTypes?: RegexLike[];
   };
+  /** When to warn that an upload is taking unusually long. The defaults assume the
+   *  server's own disk; object storage adds a round trip and needs a larger window. */
+  uploadDelayNotice?: {
+    baseMs?: number;
+    perMbMs?: number;
+  };
   checkType?: (fileType: string, supportedTypes: RegexLike[]) => boolean;
   defaultLLMDeliveryPath?: TDefaultLLMDeliveryPathConfig;
   legacyFileUploadUX?: boolean;
@@ -100,6 +106,12 @@ export type FileConfig = {
 export type FileConfigInput = {
   endpoints?: {
     [key: string]: EndpointFileConfig;
+  };
+  /** When to warn that an upload is taking unusually long. The defaults assume the
+   *  server's own disk; object storage adds a round trip and needs a larger window. */
+  uploadDelayNotice?: {
+    baseMs?: number;
+    perMbMs?: number;
   };
   skills?: {
     fileSizeLimit?: number;

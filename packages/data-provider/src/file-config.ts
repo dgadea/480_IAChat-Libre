@@ -599,6 +599,20 @@ export const fileConfigSchema = z.object({
   fileContextSizeLimit: z.number().min(0).optional(),
   fileContextCharLimit: z.number().min(0).optional(),
   codeEnvLivenessSafeWindowMs: z.number().min(0).optional(),
+  /**
+   * When to warn that an upload is taking unusually long. The defaults assume
+   * storage on the server's own disk; object storage adds a round trip, so a
+   * deployment on S3-compatible storage needs a larger window to avoid warning
+   * about every ordinary upload.
+   */
+  uploadDelayNotice: z
+    .object({
+      /** Grace period before any warning, regardless of size. */
+      baseMs: z.number().min(0).optional(),
+      /** Added to the grace period for each megabyte. */
+      perMbMs: z.number().min(0).optional(),
+    })
+    .optional(),
   imageGeneration: z
     .object({
       percentage: z.number().min(0).max(100).optional(),
@@ -1227,6 +1241,13 @@ export function mergeFileConfig(dynamic: z.infer<typeof fileConfigSchema> | unde
       ...mergedConfig.clientImageResize,
       ...dynamic.clientImageResize,
       enforced: dynamic.clientImageResize.enabled !== undefined,
+    };
+  }
+
+  if (dynamic.uploadDelayNotice !== undefined) {
+    mergedConfig.uploadDelayNotice = {
+      ...mergedConfig.uploadDelayNotice,
+      ...dynamic.uploadDelayNotice,
     };
   }
 

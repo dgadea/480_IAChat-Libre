@@ -2,19 +2,36 @@ import { useState } from 'react';
 import { useToastContext } from '@librechat/client';
 import { useLocalize } from '~/hooks';
 
-export const useDelayedUploadToast = () => {
+/** Server's own disk: a few seconds is already unusual. */
+export const DEFAULT_UPLOAD_DELAY_BASE_MS = 5000;
+export const DEFAULT_UPLOAD_DELAY_PER_MB_MS = 2000;
+
+export interface UploadDelayNotice {
+  baseMs?: number;
+  perMbMs?: number;
+}
+
+/**
+ * How long an upload may take before the delay warning appears.
+ *
+ * The defaults are tuned for storage on the server's own disk. Object storage
+ * puts a second network hop between the request and the stored file, so a
+ * deployment on S3-compatible storage can raise these rather than warn about
+ * every ordinary upload — a warning that fires routinely stops being read.
+ */
+export const determineDelay = (fileSize: number, notice?: UploadDelayNotice): number => {
+  const baseDelay = notice?.baseMs ?? DEFAULT_UPLOAD_DELAY_BASE_MS;
+  const perMb = notice?.perMbMs ?? DEFAULT_UPLOAD_DELAY_PER_MB_MS;
+  return baseDelay + Math.floor(fileSize / 1000000) * perMb;
+};
+
+export const useDelayedUploadToast = (notice?: UploadDelayNotice) => {
   const localize = useLocalize();
   const { showToast } = useToastContext();
   const [uploadTimers, setUploadTimers] = useState<Record<string, NodeJS.Timeout>>({});
 
-  const determineDelay = (fileSize: number): number => {
-    const baseDelay = 5000;
-    const additionalDelay = Math.floor(fileSize / 1000000) * 2000;
-    return baseDelay + additionalDelay;
-  };
-
   const startUploadTimer = (fileId: string, fileName: string, fileSize: number) => {
-    const delay = determineDelay(fileSize);
+    const delay = determineDelay(fileSize, notice);
 
     if (uploadTimers[fileId]) {
       clearTimeout(uploadTimers[fileId]);
