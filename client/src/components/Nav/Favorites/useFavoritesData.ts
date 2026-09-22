@@ -1,12 +1,12 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useCallback } from 'react';
 import { useQueries } from '@tanstack/react-query';
 import { QueryKeys, EModelEndpoint, dataService } from 'librechat-data-provider';
 import type { Agent, TEndpointsConfig, TModelSpec } from 'librechat-data-provider';
 import type { Favorite } from '~/store/favorites';
 import { useGetEndpointsQuery, useGetStartupConfig } from '~/data-provider';
 import { useAssistantsMapContext, useAgentsMapContext } from '~/Providers';
-import { useFavorites, useGetConversation, useNewConvo } from '~/hooks';
 import useSelectMention from '~/hooks/Input/useSelectMention';
+import { useFavorites, useNewConvo } from '~/hooks';
 
 /** A 404/403 from getAgentById means the agent is gone or inaccessible; other errors are transient. */
 export const isMissingAgentError = (error: unknown): boolean => {
@@ -52,7 +52,17 @@ export type FavoritesData = {
  * with pinned conversations).
  */
 export default function useFavoritesData(): FavoritesData {
-  const getConversation = useGetConversation(0);
+  /**
+   * Picking a pinned model opens a new chat instead of re-pointing the one on
+   * screen. A row in this list reads as a place to go, not as a setting for the
+   * conversation already open, and switching underneath an ongoing thread left
+   * people unsure which model had answered what.
+   *
+   * `useSelectMention` decides between switching in place and starting fresh
+   * from the conversation it is handed, so withholding one is what makes every
+   * pick a new chat.
+   */
+  const getConversation = useCallback(() => null, []);
   const { favorites, reorderFavorites, isLoading, isLoaded, dataUpdatedAt } = useFavorites();
 
   const { newConversation } = useNewConvo();

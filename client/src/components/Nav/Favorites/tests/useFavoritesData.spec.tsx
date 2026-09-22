@@ -32,9 +32,13 @@ jest.mock('~/Providers', () => ({
   useAgentsMapContext: () => mockAgentsMap,
 }));
 
+const mockSelectMention = jest.fn();
 jest.mock('~/hooks/Input/useSelectMention', () => ({
   __esModule: true,
-  default: () => ({ onSelectEndpoint: jest.fn(), onSelectSpec: jest.fn() }),
+  default: (options: unknown) => {
+    mockSelectMention(options);
+    return { onSelectEndpoint: jest.fn(), onSelectSpec: jest.fn() };
+  },
 }));
 
 jest.mock('~/hooks', () => ({
@@ -137,5 +141,21 @@ describe('useFavoritesData', () => {
     renderProbe();
     await new Promise((resolve) => setTimeout(resolve, 50));
     expect(mockGetAgentById).not.toHaveBeenCalled();
+  });
+});
+
+describe('pinned selection target', () => {
+  /** A pinned row reads as a place to go, not as a setting for the thread already
+   *  open. `useSelectMention` starts a new conversation when it is handed none,
+   *  so this is what keeps a pick from re-pointing the chat on screen. */
+  it('hands the selection logic no current conversation', () => {
+    mockSelectMention.mockClear();
+    renderProbe();
+
+    expect(mockSelectMention).toHaveBeenCalled();
+    const options = mockSelectMention.mock.calls.at(-1)?.[0] as {
+      getConversation: () => unknown;
+    };
+    expect(options.getConversation()).toBeNull();
   });
 });
