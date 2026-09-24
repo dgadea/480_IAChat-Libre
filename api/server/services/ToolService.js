@@ -18,6 +18,7 @@ const {
   isActionDomainAllowed,
   buildWebSearchContext,
   buildImageToolContext,
+  buildMCPImageLinkContext,
   buildToolClassification,
   supportsProgrammaticCodeExecution,
   getMissingCustomUserVars,
@@ -102,6 +103,7 @@ const {
   getCachedTools,
 } = require('~/server/services/Config');
 const { processFileURL, uploadImageBuffer } = require('~/server/services/Files/process');
+const { getStrategyFunctions } = require('~/server/services/Files/strategies');
 const { primeFiles: primeSearchFiles } = require('~/app/clients/tools/util/fileSearch');
 const { primeFiles: primeCodeFiles } = require('~/server/services/Files/Code/process');
 const { manifestToolMap, toolkits } = require('~/app/clients/tools/manifest');
@@ -147,6 +149,24 @@ const getActiveToolResources = (toolResources, tools) => {
   }
 
   return Object.keys(activeResources).length > 0 ? activeResources : null;
+};
+
+/** Adds the attached images as fetchable URLs to the context of an agent with MCP tools. */
+const addMCPImageLinkContext = async ({
+  req,
+  toolNames,
+  tool_resources,
+  dynamicToolContextMap,
+}) => {
+  const toolContext = await buildMCPImageLinkContext({
+    settings: req.config?.mcpSettings?.imageLinks,
+    toolNames,
+    imageFiles: tool_resources?.[EToolResources.image_edit]?.files,
+    resolveURL: (file) => getStrategyFunctions(file.source).getDownloadURL?.({ file }),
+  });
+  if (toolContext) {
+    dynamicToolContextMap.mcp_image_links = toolContext;
+  }
 };
 
 /** Deployment switch guarding each role-gated tool. Spelled out rather than
@@ -1561,6 +1581,13 @@ async function loadToolDefinitionsWrapper({
     }
   }
 
+  await addMCPImageLinkContext({
+    req,
+    toolNames: filteredTools,
+    tool_resources,
+    dynamicToolContextMap,
+  });
+
   return {
     toolRegistry,
     mcpAvailableTools,
@@ -1800,6 +1827,13 @@ async function loadAgentTools({
     webSearch: appConfig.webSearch,
     fileStrategy: appConfig.fileStrategy,
     imageOutputType: appConfig.imageOutputType,
+  });
+
+  await addMCPImageLinkContext({
+    req,
+    toolNames: _agentTools,
+    tool_resources,
+    dynamicToolContextMap,
   });
 
   /** Build tool registry from MCP tools and create PTC/tool search tools if configured */

@@ -3022,6 +3022,14 @@ export const configSchema = z.object({
           maxPerCall: z.number().int().positive().max(20).default(4),
         })
         .default({}),
+      /** Lists the images attached to a request as signed storage URLs in the context of an agent
+       * with MCP tools, so a tool that takes `image_url` can receive them. Off by default: the URL
+       * lets anyone holding it read the image until it expires. */
+      imageLinks: z
+        .object({
+          enabled: z.boolean().default(false),
+        })
+        .default({}),
     })
     .optional(),
   interface: interfaceSchema,

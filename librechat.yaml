@@ -28,11 +28,19 @@ fileConfig:
 # se ve en línea y sigue ahí aunque el proveedor borre su copia. Si el resultado
 # trae un video, las imágenes que lo acompañan se toman como miniaturas y se
 # omiten.
+#
+# `imageLinks` resuelve el caso inverso: una imagen que adjunta el usuario el
+# modelo la ve, pero una herramienta MCP que pide `image_url` necesita un enlace.
+# Con esto, en agentes con herramientas MCP, las imágenes del mensaje se listan
+# en el contexto como enlaces firmados de R2 (duran S3_URL_EXPIRY_SECONDS, hoy
+# 24 h). Quien tenga el enlace puede ver la imagen hasta que venza.
 mcpSettings:
   mediaCapture:
     enabled: true
     maxBytes: 104857600
     maxPerCall: 4
+  imageLinks:
+    enabled: true
 
 # Solo estos dominios pueden REGISTRARSE (y usar "olvidé mi contraseña"
 # y login social). El login local de cuentas ya existentes no se filtra.
