@@ -1,69 +1,111 @@
 import { Constants } from 'librechat-data-provider';
-import type { MCPAttachedImage } from '../attachments';
-import { buildMCPImageLinkContext } from '../attachments';
+import type { MCPAttachedImage, MCPImageLinkSettings } from '../attachments';
+import { buildMCPImageLinkContext, imageRef } from '../attachments';
 
 const MCP_TOOL = `generate_video${Constants.mcp_delimiter}higgsfield`;
-const images: MCPAttachedImage[] = [
-  { file_id: 'file-1', filename: 'jeep.png' },
-  { file_id: 'file-2', filename: 'sunset.jpg' },
-];
+const enabled: MCPImageLinkSettings = { enabled: true, maxImages: 4 };
+const jeep: MCPAttachedImage = { file_id: 'a1b2c3d4-jeep', filename: 'jeep.png' };
+const sunset: MCPAttachedImage = { file_id: 'e5f6a7b8-sunset', filename: 'sunset.jpg' };
+const canyon: MCPAttachedImage = { file_id: 'c9d0e1f2-canyon', filename: 'canyon.webp' };
 const signedURL = async (file: MCPAttachedImage) =>
   `https://r2.example.com/images/${file.file_id}?X-Amz-Signature=abc`;
 
+describe('imageRef', () => {
+  it('is short, stable and derived from the file id', () => {
+    expect(imageRef(jeep)).toBe('img-a1b2c3');
+    expect(imageRef({ file_id: 'A1-B2-C3-D4' })).toBe('img-a1b2c3');
+  });
+});
+
 describe('buildMCPImageLinkContext', () => {
-  it('lists each attached image with its URL, in order', async () => {
+  it('lists the current message images first, then earlier ones, with refs and URLs', async () => {
     const context = await buildMCPImageLinkContext({
-      settings: { enabled: true },
+      settings: enabled,
       toolNames: ['web_search', MCP_TOOL],
-      imageFiles: images,
+      imageFiles: [jeep],
+      loadEarlierImages: async () => [jeep, sunset],
       resolveURL: signedURL,
     });
 
     expect(context).toContain(
-      '\t- jeep.png: https://r2.example.com/images/file-1?X-Amz-Signature=abc\n' +
-        '\t- sunset.jpg: https://r2.example.com/images/file-2?X-Amz-Signature=abc',
+      `\t- [img-a1b2c3] jeep.png (attached to the current message): https://r2.example.com/images/${jeep.file_id}?X-Amz-Signature=abc\n` +
+        `\t- [img-e5f6a7] sunset.jpg: https://r2.example.com/images/${sunset.file_id}?X-Amz-Signature=abc\n`,
     );
-    expect(context).toContain('image_url');
+    expect(context).toContain('most recent one');
+  });
+
+  it('lists earlier images when the current message has none, so a confirm turn still works', async () => {
+    const context = await buildMCPImageLinkContext({
+      settings: enabled,
+      toolNames: [MCP_TOOL],
+      loadEarlierImages: async () => [sunset],
+      resolveURL: signedURL,
+    });
+
+    expect(context).toContain('\t- [img-e5f6a7] sunset.jpg: https://');
+    expect(context).not.toContain('current message)');
+  });
+
+  it('keeps no more than maxImages, the current message first', async () => {
+    const loadEarlierImages = jest.fn(async () => [sunset, canyon]);
+    const context = await buildMCPImageLinkContext({
+      settings: { enabled: true, maxImages: 2 },
+      toolNames: [MCP_TOOL],
+      imageFiles: [jeep],
+      loadEarlierImages,
+      resolveURL: signedURL,
+    });
+
+    expect(loadEarlierImages).toHaveBeenCalledWith(2);
+    expect(context).toContain('jeep.png');
+    expect(context).toContain('sunset.jpg');
+    expect(context).not.toContain('canyon.webp');
   });
 
   it.each([
-    ['disabled', { enabled: false }, [MCP_TOOL]],
+    ['disabled', { enabled: false, maxImages: 4 }, [MCP_TOOL]],
     ['unset', undefined, [MCP_TOOL]],
-    ['without MCP tools', { enabled: true }, ['web_search', 'gemini_video_gen']],
-  ])('returns nothing when %s', async (_label, settings, toolNames) => {
+    ['without MCP tools', enabled, ['web_search', 'gemini_video_gen']],
+  ])('reads and signs nothing when %s', async (_label, settings, toolNames) => {
     const resolveURL = jest.fn(signedURL);
+    const loadEarlierImages = jest.fn(async () => [sunset]);
     const context = await buildMCPImageLinkContext({
       settings,
       toolNames,
-      imageFiles: images,
+      imageFiles: [jeep],
+      loadEarlierImages,
       resolveURL,
     });
 
     expect(context).toBe('');
+    expect(loadEarlierImages).not.toHaveBeenCalled();
     expect(resolveURL).not.toHaveBeenCalled();
   });
 
-  it('returns nothing when no image was attached', async () => {
+  it('keeps the current images when the earlier ones cannot be read', async () => {
     const context = await buildMCPImageLinkContext({
-      settings: { enabled: true },
+      settings: enabled,
       toolNames: [MCP_TOOL],
-      imageFiles: [],
+      imageFiles: [jeep],
+      loadEarlierImages: async () => {
+        throw new Error('database unavailable');
+      },
       resolveURL: signedURL,
     });
 
-    expect(context).toBe('');
+    expect(context).toContain('jeep.png');
   });
 
   it('skips images whose storage cannot produce a URL or fails to', async () => {
     const context = await buildMCPImageLinkContext({
-      settings: { enabled: true },
+      settings: enabled,
       toolNames: [MCP_TOOL],
-      imageFiles: [...images, { file_id: 'file-3' }],
+      imageFiles: [jeep, sunset, canyon],
       resolveURL: async (file) => {
-        if (file.file_id === 'file-1') {
+        if (file === jeep) {
           return undefined;
         }
-        if (file.file_id === 'file-2') {
+        if (file === sunset) {
           throw new Error('S3 not initialized');
         }
         return signedURL(file);
@@ -72,17 +114,25 @@ describe('buildMCPImageLinkContext', () => {
 
     expect(context).not.toContain('jeep.png');
     expect(context).not.toContain('sunset.jpg');
-    expect(context).toContain('\t- file-3: https://r2.example.com/images/file-3');
+    expect(context).toContain('canyon.webp');
   });
 
-  it('returns nothing when no image resolves to a URL', async () => {
-    const context = await buildMCPImageLinkContext({
-      settings: { enabled: true },
-      toolNames: [MCP_TOOL],
-      imageFiles: images,
-      resolveURL: async () => null,
-    });
-
-    expect(context).toBe('');
+  it('returns nothing when there is no image or none resolves to a URL', async () => {
+    await expect(
+      buildMCPImageLinkContext({
+        settings: enabled,
+        toolNames: [MCP_TOOL],
+        loadEarlierImages: async () => [],
+        resolveURL: signedURL,
+      }),
+    ).resolves.toBe('');
+    await expect(
+      buildMCPImageLinkContext({
+        settings: enabled,
+        toolNames: [MCP_TOOL],
+        imageFiles: [jeep],
+        resolveURL: async () => null,
+      }),
+    ).resolves.toBe('');
   });
 });

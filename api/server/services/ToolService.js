@@ -119,7 +119,7 @@ const { createOpenIDSessionTokenProvider } = require('~/server/services/OpenIDSe
 const { getMCPRequestContext } = require('~/server/services/MCPRequestContext');
 const { recordUsage } = require('~/server/services/Threads');
 const { loadTools } = require('~/app/clients/tools/util');
-const { findPluginAuthsByKeys, getRoleByName } = require('~/models');
+const { findPluginAuthsByKeys, getRoleByName, getConversationImageFiles } = require('~/models');
 const { getFlowStateManager, getMCPServersRegistry } = require('~/config');
 const { getLogStores } = require('~/cache');
 
@@ -151,7 +151,7 @@ const getActiveToolResources = (toolResources, tools) => {
   return Object.keys(activeResources).length > 0 ? activeResources : null;
 };
 
-/** Adds the attached images as fetchable URLs to the context of an agent with MCP tools. */
+/** Adds the conversation's attached images as fetchable URLs to an MCP agent's context. */
 const addMCPImageLinkContext = async ({
   req,
   toolNames,
@@ -162,6 +162,14 @@ const addMCPImageLinkContext = async ({
     settings: req.config?.mcpSettings?.imageLinks,
     toolNames,
     imageFiles: tool_resources?.[EToolResources.image_edit]?.files,
+    loadEarlierImages: (limit) =>
+      req.body?.conversationId
+        ? getConversationImageFiles({
+            user: req.user.id,
+            conversationId: req.body.conversationId,
+            limit,
+          })
+        : [],
     resolveURL: (file) => getStrategyFunctions(file.source).getDownloadURL?.({ file }),
   });
   if (toolContext) {

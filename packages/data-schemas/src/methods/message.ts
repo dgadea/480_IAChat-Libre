@@ -2,8 +2,8 @@ import { HITL_MESSAGE_FILTER_FIELDS, RetentionMode } from 'librechat-data-provid
 import type { DeleteResult, FilterQuery, Model, Types, UpdateQuery } from 'mongoose';
 import type { UserSubmittedMessageFieldPath } from 'librechat-data-provider';
 import type { SearchParams } from 'meilisearch';
+import type { AppConfig, IConversation, IMessage, IMongoFile } from '~/types';
 import type { SchemaWithMeiliMethods } from '~/models/plugins/mongoMeili';
-import type { AppConfig, IConversation, IMessage } from '~/types';
 import { createChatExpirationDate, createTempChatExpirationDate } from '~/utils/tempChatRetention';
 import { activeExpirationFilter, createFallbackRetentionDate } from '~/utils/retention';
 import { tenantSafeBulkWrite } from '~/utils/tenantBulkWrite';
@@ -786,6 +786,15 @@ export interface MessageMethods {
     select?: string,
     options?: MessageQueryOptions,
   ): Promise<IMessage[]>;
+  /**
+   * The images a user attached to their own messages in a conversation, newest message first,
+   * as stored file records owned by that user. Capped at `limit` distinct files.
+   */
+  getConversationImageFiles(input: {
+    user: string;
+    conversationId: string;
+    limit: number;
+  }): Promise<IMongoFile[]>;
   getMessagesForSubagentThreadView(input: {
     user: string;
     conversationId: string;
@@ -2373,6 +2382,54 @@ export function createMessageMethods(mongoose: typeof import('mongoose')): Messa
     }
   }
 
+  /** Messages scanned for attachments; bounds the read on a long conversation. */
+  const CONVERSATION_IMAGE_MESSAGE_SCAN = 50;
+
+  async function getConversationImageFiles({
+    user,
+    conversationId,
+    limit,
+  }: {
+    user: string;
+    conversationId: string;
+    limit: number;
+  }): Promise<IMongoFile[]> {
+    const Message = mongoose.models.Message as Model<IMessage>;
+    const messages = await Message.find({
+      user,
+      conversationId,
+      isCreatedByUser: true,
+      'files.0': { $exists: true },
+    })
+      .select('files')
+      .sort({ createdAt: -1 })
+      .limit(CONVERSATION_IMAGE_MESSAGE_SCAN)
+      .lean<Pick<IMessage, 'files'>[]>();
+
+    const fileIds = new Set<string>();
+    for (const message of messages) {
+      for (const file of (message.files ?? []) as Array<{ file_id?: string; type?: string }>) {
+        if (fileIds.size >= limit) {
+          break;
+        }
+        if (file?.file_id && file.type?.startsWith('image/')) {
+          fileIds.add(file.file_id);
+        }
+      }
+    }
+    if (fileIds.size === 0) {
+      return [];
+    }
+
+    const order = [...fileIds];
+    const File = mongoose.models.File as Model<IMongoFile>;
+    const files = await File.find({ user, file_id: { $in: order } })
+      .select({ text: 0 })
+      .lean<IMongoFile[]>();
+    const byId = new Map(files.map((file) => [file.file_id, file]));
+    return order.flatMap((fileId) => byId.get(fileId) ?? []);
+  }
+
   /**
    * Reads the fixed public child-thread projection and truncates text inside
    * MongoDB so oversized persisted messages are never materialized by the API.
@@ -3603,6 +3660,7 @@ export function createMessageMethods(mongoose: typeof import('mongoose')): Messa
     releaseSubagentTaskResultClaim,
     deleteMessagesSince,
     getMessages,
+    getConversationImageFiles,
     getConversationTraceRefs,
     hasSampledTraceMessage,
     getMessagesForSubagentThreadView,

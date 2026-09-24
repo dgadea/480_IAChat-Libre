@@ -31,9 +31,12 @@ fileConfig:
 #
 # `imageLinks` resuelve el caso inverso: una imagen que adjunta el usuario el
 # modelo la ve, pero una herramienta MCP que pide `image_url` necesita un enlace.
-# Con esto, en agentes con herramientas MCP, las imágenes del mensaje se listan
-# en el contexto como enlaces firmados de R2 (duran S3_URL_EXPIRY_SECONDS, hoy
-# 24 h). Quien tenga el enlace puede ver la imagen hasta que venza.
+# Con esto, en agentes con herramientas MCP, las últimas `maxImages` imágenes que
+# el usuario subió en la conversación (las del mensaje actual primero) se listan
+# en el contexto con una referencia corta (img-xxxxxx) y un enlace firmado de R2
+# que se renueva en cada mensaje (dura S3_URL_EXPIRY_SECONDS, hoy 24 h). Así el
+# agente puede confirmar o refinar el prompt y usar la imagen un turno después.
+# Quien tenga el enlace puede ver la imagen hasta que venza.
 mcpSettings:
   mediaCapture:
     enabled: true
@@ -41,6 +44,7 @@ mcpSettings:
     maxPerCall: 4
   imageLinks:
     enabled: true
+    maxImages: 4
 
 # Solo estos dominios pueden REGISTRARSE (y usar "olvidé mi contraseña"
 # y login social). El login local de cuentas ya existentes no se filtra.
