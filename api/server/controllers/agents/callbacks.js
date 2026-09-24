@@ -1004,13 +1004,24 @@ function createToolEndCallback({ req, res, artifactPromises, streamId = null, jo
           settings: req.config?.mcpSettings?.mediaCapture,
           allowedAddresses: req.config?.mcpSettings?.allowedAddresses,
           captured: capturedMedia,
-          store: async (download) => {
-            const file = await saveMediaBuffer(download.buffer, {
-              req,
-              type: download.type,
-              filename: download.filename,
-              context: FileContext.image_generation,
-            });
+          store: async (download, link) => {
+            const file =
+              link.kind === 'image'
+                ? await saveBase64Image(
+                    `data:${download.type};base64,${download.buffer.toString('base64')}`,
+                    {
+                      req,
+                      filename: download.filename,
+                      endpoint: metadata.provider,
+                      context: FileContext.image_generation,
+                    },
+                  )
+                : await saveMediaBuffer(download.buffer, {
+                    req,
+                    type: download.type,
+                    filename: download.filename,
+                    context: FileContext.image_generation,
+                  });
             return emitToolFile(file, output, metadata);
           },
         }),

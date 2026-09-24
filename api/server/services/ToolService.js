@@ -170,7 +170,8 @@ const addMCPImageLinkContext = async ({
             limit,
           })
         : [],
-    resolveURL: (file) => getStrategyFunctions(file.source).getDownloadURL?.({ file }),
+    resolveURL: (file) =>
+      getStrategyFunctions(file.source).getDownloadURL?.({ file, contentType: file.type }),
   });
   if (toolContext) {
     dynamicToolContextMap.mcp_image_links = toolContext;
