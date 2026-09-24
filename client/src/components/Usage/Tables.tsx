@@ -1,6 +1,6 @@
 import { Fragment, useState } from 'react';
 import { ChevronRight } from 'lucide-react';
-import type { TUsageModel, TUsageTotals, TUsageUser } from 'librechat-data-provider';
+import type { TUsageAgent, TUsageModel, TUsageTotals, TUsageUser } from 'librechat-data-provider';
 import { formatCost, formatCount } from './format';
 import { useLocalize } from '~/hooks';
 import { cn } from '~/utils';
@@ -74,20 +74,27 @@ function TablePanel({ title, children }: { title: string; children: React.ReactN
 const modelName = (model: string, localize: Localize) =>
   model || localize('com_usage_unknown_model');
 
-function UserRow({
-  user,
+type ChildRow = { key: string; label: React.ReactNode; totals: TUsageTotals };
+
+function ExpandableRow({
+  title,
+  subtitle,
+  toggleLabel,
+  totals,
+  childRows,
   expanded,
   onToggle,
   locale,
-  localize,
 }: {
-  user: TUsageUser;
+  title: string;
+  subtitle: string;
+  toggleLabel: string;
+  totals: TUsageTotals;
+  childRows: ChildRow[];
   expanded: boolean;
   onToggle: () => void;
   locale: string;
-  localize: Localize;
 }) {
-  const name = user.name || localize('com_usage_unknown_user');
   return (
     <Fragment>
       <tr className="hover:bg-surface-hover">
@@ -96,7 +103,7 @@ function UserRow({
             type="button"
             onClick={onToggle}
             aria-expanded={expanded}
-            aria-label={localize('com_usage_toggle_models', { name })}
+            aria-label={toggleLabel}
             className="flex w-full min-w-0 items-center gap-2 rounded text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-border-heavy"
           >
             <ChevronRight
@@ -107,23 +114,39 @@ function UserRow({
               )}
             />
             <span className="min-w-0">
-              <span className="block truncate text-text-primary">{name}</span>
-              <span className="block truncate text-xs text-text-secondary">{user.email}</span>
+              <span className="block truncate text-text-primary">{title}</span>
+              <span className="block truncate text-xs text-text-secondary">{subtitle}</span>
             </span>
           </button>
         </td>
-        <TotalsCells row={user} locale={locale} />
+        <TotalsCells row={totals} locale={locale} />
       </tr>
       {expanded &&
-        user.models.map((model) => (
-          <tr key={model.model} className="bg-surface-secondary text-text-secondary">
-            <td className="py-2 pl-8 pr-2 text-xs">{modelName(model.model, localize)}</td>
-            <TotalsCells row={model} locale={locale} />
+        childRows.map((child) => (
+          <tr key={child.key} className="bg-surface-secondary text-text-secondary">
+            <td className="py-2 pl-8 pr-2 text-xs">{child.label}</td>
+            <TotalsCells row={child.totals} locale={locale} />
           </tr>
         ))}
     </Fragment>
   );
 }
+
+function useExpanded() {
+  const [expanded, setExpanded] = useState<ReadonlySet<string>>(() => new Set());
+  const toggle = (key: string) =>
+    setExpanded((current) => {
+      const next = new Set(current);
+      if (!next.delete(key)) {
+        next.add(key);
+      }
+      return next;
+    });
+  return { expanded, toggle };
+}
+
+const userName = (user: TUsageUser, localize: Localize) =>
+  user.name || localize('com_usage_unknown_user');
 
 export function UsersTable({
   users,
@@ -134,31 +157,87 @@ export function UsersTable({
   locale: string;
   localize: Localize;
 }) {
-  const [expanded, setExpanded] = useState<ReadonlySet<string>>(() => new Set());
-  const toggle = (userId: string) =>
-    setExpanded((current) => {
-      const next = new Set(current);
-      if (!next.delete(userId)) {
-        next.add(userId);
-      }
-      return next;
-    });
-
+  const { expanded, toggle } = useExpanded();
   return (
     <TablePanel title={localize('com_usage_by_user')}>
       <table className="w-full min-w-[640px] text-left text-sm">
         <TotalsHeader first={localize('com_usage_user')} localize={localize} />
         <tbody className="divide-y divide-border-light">
           {users.map((user) => (
-            <UserRow
+            <ExpandableRow
               key={user.userId}
-              user={user}
+              title={userName(user, localize)}
+              subtitle={user.email}
+              toggleLabel={localize('com_usage_toggle_models', { name: userName(user, localize) })}
+              totals={user}
+              childRows={user.models.map((model) => ({
+                key: model.model,
+                label: modelName(model.model, localize),
+                totals: model,
+              }))}
               expanded={expanded.has(user.userId)}
               onToggle={() => toggle(user.userId)}
               locale={locale}
-              localize={localize}
             />
           ))}
+        </tbody>
+      </table>
+    </TablePanel>
+  );
+}
+
+export function agentName(agent: TUsageAgent, localize: Localize) {
+  if (!agent.agentId) {
+    return localize('com_usage_no_agent');
+  }
+  return agent.name || agent.agentId;
+}
+
+export function AgentsTable({
+  agents,
+  locale,
+  localize,
+}: {
+  agents: TUsageAgent[];
+  locale: string;
+  localize: Localize;
+}) {
+  const { expanded, toggle } = useExpanded();
+  return (
+    <TablePanel title={localize('com_usage_by_agent')}>
+      <table className="w-full min-w-[640px] text-left text-sm">
+        <TotalsHeader first={localize('com_usage_agent')} localize={localize} />
+        <tbody className="divide-y divide-border-light">
+          {agents.map((agent) => {
+            const name = agentName(agent, localize);
+            return (
+              <ExpandableRow
+                key={agent.agentId}
+                title={name}
+                subtitle={localize(
+                  agent.users.length === 1 ? 'com_usage_agent_users_one' : 'com_usage_agent_users',
+                  { count: agent.users.length },
+                )}
+                toggleLabel={localize('com_usage_toggle_users', { name })}
+                totals={agent}
+                childRows={agent.users.map((user) => ({
+                  key: user.userId,
+                  label: (
+                    <>
+                      <span className="block truncate text-text-primary">
+                        {userName(user, localize)}
+                      </span>
+                      <span className="block truncate">{user.email}</span>
+                    </>
+                  ),
+                  totals: user,
+                }))}
+                expanded={expanded.has(agent.agentId)}
+                onToggle={() => toggle(agent.agentId)}
+                locale={locale}
+              />
+            );
+          })}
         </tbody>
       </table>
     </TablePanel>

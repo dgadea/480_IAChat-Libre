@@ -5,10 +5,10 @@ import { USAGE_MAX_RANGE_DAYS } from 'librechat-data-provider';
 import { Button, Spinner, useMediaQuery } from '@librechat/client';
 import type { TUsageParams } from 'librechat-data-provider';
 import type { TranslationKeys } from '~/hooks';
+import { AgentsTable, ModelsTable, Panel, UsersTable, agentName } from './Tables';
 import { dateStamp, formatCompact, formatCost, formatCount } from './format';
 import OpenSidebar from '~/components/Chat/Menus/OpenSidebar';
 import { LocalizedDateRangePicker } from '~/components/ui';
-import { ModelsTable, Panel, UsersTable } from './Tables';
 import { useDocumentTitle, useLocalize } from '~/hooks';
 import { useUsageQuery } from '~/data-provider';
 import { downloadCsv, usageCsv } from './csv';
@@ -74,7 +74,10 @@ export default function UsageView() {
       return;
     }
     const fileName = `usage_${dateStamp(range.startDate)}_${dateStamp(range.endDate)}.csv`;
-    downloadCsv(usageCsv(data.users), fileName);
+    downloadCsv(
+      usageCsv(data.agents, (agent) => agentName(agent, localize)),
+      fileName,
+    );
   };
 
   return (
@@ -193,6 +196,7 @@ export default function UsageView() {
               ) : (
                 <>
                   <UsersTable users={data.users} locale={locale} localize={localize} />
+                  <AgentsTable agents={data.agents} locale={locale} localize={localize} />
                   <ModelsTable models={data.models} locale={locale} localize={localize} />
                 </>
               )}

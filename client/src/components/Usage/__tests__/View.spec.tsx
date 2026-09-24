@@ -46,6 +46,18 @@ const usageData: TUsageResponse = {
     },
   ],
   models: [],
+  agents: [
+    {
+      agentId: 'agent_sales',
+      name: 'Ventas',
+      requests: 3,
+      inputTokens: 1200,
+      outputTokens: 300,
+      totalTokens: 1500,
+      cost: 5.1,
+      users: [],
+    },
+  ],
 };
 
 type QueryState = {
@@ -113,6 +125,9 @@ describe('UsageView', () => {
     expect(toggle).toHaveAttribute('aria-expanded', 'true');
     expect(screen.getByText('gpt-5')).toBeInTheDocument();
     expect(screen.getByText('$0.10')).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'com_usage_toggle_users:Ventas' }),
+    ).toBeInTheDocument();
   });
 
   it('queries a rolling window when a preset is chosen', async () => {

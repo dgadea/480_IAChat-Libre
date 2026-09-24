@@ -1,6 +1,8 @@
-import type { TUsageUser } from 'librechat-data-provider';
+import type { TUsageAgent } from 'librechat-data-provider';
 
 const header = [
+  'agent',
+  'agent_id',
   'name',
   'email',
   'model',
@@ -18,22 +20,29 @@ function cell(value: string | number): string {
   return /[",\n\r]/.test(safe) ? `"${safe.replace(/"/g, '""')}"` : safe;
 }
 
-/** One row per user and model, so the file pivots cleanly in a spreadsheet */
-export function usageCsv(users: TUsageUser[]): string {
-  const rows = users.flatMap((user) =>
-    user.models.map((model) =>
-      [
-        user.name,
-        user.email,
-        model.model,
-        model.requests,
-        model.inputTokens,
-        model.outputTokens,
-        model.totalTokens,
-        model.cost.toFixed(6),
-      ]
-        .map(cell)
-        .join(','),
+/** One row per agent, user and model, so the file pivots cleanly in a spreadsheet */
+export function usageCsv(
+  agents: TUsageAgent[],
+  agentLabel: (agent: TUsageAgent) => string,
+): string {
+  const rows = agents.flatMap((agent) =>
+    agent.users.flatMap((user) =>
+      user.models.map((model) =>
+        [
+          agentLabel(agent),
+          agent.agentId,
+          user.name,
+          user.email,
+          model.model,
+          model.requests,
+          model.inputTokens,
+          model.outputTokens,
+          model.totalTokens,
+          model.cost.toFixed(6),
+        ]
+          .map(cell)
+          .join(','),
+      ),
     ),
   );
   return [header.join(','), ...rows].join('\n');

@@ -1,6 +1,8 @@
 import mongoose from 'mongoose';
 import { MongoMemoryServer } from 'mongodb-memory-server';
 import { createTransactionModel } from '../models/transaction';
+import { createMessageModel } from '../models/message';
+import { createAgentModel } from '../models/agent';
 import { createUserModel } from '../models/user';
 import { createUsageMethods } from './usage';
 
@@ -19,7 +21,14 @@ const spend = (document: Record<string, unknown>) => ({
 beforeAll(async () => {
   mongoServer = await MongoMemoryServer.create();
   await mongoose.connect(mongoServer.getUri());
-  await Promise.all([createTransactionModel(mongoose).init(), createUserModel(mongoose).init()]);
+  await Promise.all(
+    [
+      createTransactionModel(mongoose),
+      createMessageModel(mongoose),
+      createAgentModel(mongoose),
+      createUserModel(mongoose),
+    ].map((model) => model.init()),
+  );
 });
 
 afterAll(async () => {
@@ -30,6 +39,8 @@ afterAll(async () => {
 beforeEach(async () => {
   await Promise.all([
     mongoose.models.Transaction.deleteMany({}),
+    mongoose.models.Message.deleteMany({}),
+    mongoose.models.Agent.deleteMany({}),
     mongoose.models.User.deleteMany({}),
   ]);
 });
@@ -119,6 +130,101 @@ describe('Usage methods', () => {
     ]);
   });
 
+  it('attributes spend to the saved agent that answered, per user and model', async () => {
+    const ana = new mongoose.Types.ObjectId();
+    const bruno = new mongoose.Types.ObjectId();
+    await mongoose.models.User.collection.insertMany([
+      { _id: ana, name: 'Ana', email: 'ana@example.com' },
+      { _id: bruno, name: 'Bruno', email: 'bruno@example.com' },
+    ]);
+    await mongoose.models.Agent.collection.insertOne({ id: 'agent_sales', name: 'Ventas' });
+    await mongoose.models.Message.collection.insertMany([
+      { messageId: 'm1', conversationId: 'c1', user: ana.toString(), model: 'agent_sales____1' },
+      { messageId: 'm2', conversationId: 'c2', user: ana.toString(), model: 'gemini-2.5-pro' },
+      { messageId: 'm3', conversationId: 'c3', user: bruno.toString(), model: 'agent_sales' },
+      { messageId: 'm1', conversationId: 'c9', user: bruno.toString(), model: 'agent_gone' },
+    ]);
+    await mongoose.models.Transaction.collection.insertMany([
+      spend({
+        user: ana,
+        messageId: 'm1',
+        model: 'gpt-5',
+        tokenType: 'prompt',
+        rawAmount: -100,
+        tokenValue: -1_000_000,
+      }),
+      spend({
+        user: ana,
+        messageId: 'm1',
+        model: 'gpt-5',
+        tokenType: 'prompt',
+        rawAmount: -50,
+        tokenValue: -500_000,
+      }),
+      spend({
+        user: ana,
+        messageId: 'm1',
+        model: 'gpt-5',
+        tokenType: 'completion',
+        rawAmount: -20,
+        tokenValue: -500_000,
+      }),
+      spend({
+        user: ana,
+        messageId: 'm2',
+        model: 'gemini',
+        tokenType: 'prompt',
+        rawAmount: -10,
+        tokenValue: -100_000,
+      }),
+      spend({
+        user: bruno,
+        messageId: 'm3',
+        model: 'gpt-5',
+        tokenType: 'prompt',
+        rawAmount: -30,
+        tokenValue: -300_000,
+      }),
+      spend({
+        user: bruno,
+        messageId: 'lost',
+        model: 'gpt-5',
+        tokenType: 'prompt',
+        rawAmount: -5,
+        tokenValue: -50_000,
+      }),
+    ]);
+
+    const usage = await getUsage(window);
+
+    expect(
+      usage.agents.map((agent) => [agent.agentId, agent.name, agent.cost, agent.requests]),
+    ).toEqual([
+      ['agent_sales', 'Ventas', 2.3, 3],
+      ['', '', 0.15, 2],
+    ]);
+    const [sales, none] = usage.agents;
+    expect(sales.users.map((user) => [user.name, user.cost])).toEqual([
+      ['Ana', 2],
+      ['Bruno', 0.3],
+    ]);
+    expect(sales.users[0].models).toEqual([
+      {
+        model: 'gpt-5',
+        requests: 2,
+        inputTokens: 150,
+        outputTokens: 20,
+        totalTokens: 170,
+        cost: 2,
+      },
+    ]);
+    expect(none.users.map((user) => [user.name, user.models.map((model) => model.model)])).toEqual([
+      ['Ana', ['gemini']],
+      ['Bruno', ['gpt-5']],
+    ]);
+    expect(usage.summary.cost).toBe(2.45);
+  });
+
   it('leaves out spend outside the window and from another tenant', async () => {
     const user = new mongoose.Types.ObjectId();
     await mongoose.models.Transaction.collection.insertMany([
@@ -161,5 +267,6 @@ describe('Usage methods', () => {
     });
     expect(usage.users).toEqual([]);
     expect(usage.models).toEqual([]);
+    expect(usage.agents).toEqual([]);
   });
 });

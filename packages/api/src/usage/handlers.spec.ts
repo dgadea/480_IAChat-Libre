@@ -15,6 +15,7 @@ const emptyUsage: TUsageResponse = {
   summary: { users: 0, requests: 0, inputTokens: 0, outputTokens: 0, totalTokens: 0, cost: 0 },
   users: [],
   models: [],
+  agents: [],
 };
 
 const createResponse = () => {

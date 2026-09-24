@@ -29,12 +29,20 @@ export type TUsageUser = TUsageTotals & {
   models: TUsageModel[];
 };
 
+export type TUsageAgent = TUsageTotals & {
+  /** Empty for spend no saved agent answered: direct model chats, or unsaved responses */
+  agentId: string;
+  name: string;
+  users: TUsageUser[];
+};
+
 export type TUsageResponse = {
   from: string;
   to: string;
   summary: TUsageTotals & { users: number };
   users: TUsageUser[];
   models: TUsageModel[];
+  agents: TUsageAgent[];
 };
 
 export type TUsageProvider = 'openai' | 'anthropic';
