@@ -23,6 +23,7 @@ const settingsContext: SettingsContextValue = {
   engineTTS: 'browser',
   langfuseConnectionAccess: false,
   adminPanelURL: '',
+  isAdmin: false,
 };
 
 describe('settings registry', () => {
@@ -49,6 +50,19 @@ describe('settings registry', () => {
     for (const entry of registry) {
       expect(isValidElementType(entry.Component)).toBe(true);
     }
+  });
+
+  describe('Usage page link', () => {
+    const usageEntry = registry.find((entry) => entry.id === 'usagePage');
+
+    it('sits in the admin section of the General tab', () => {
+      expect(usageEntry).toMatchObject({ tab: SettingsTabValues.GENERAL, section: 'admin' });
+    });
+
+    it('shows only to admins', () => {
+      expect(usageEntry?.show?.({ ...settingsContext, isAdmin: true })).toBe(true);
+      expect(usageEntry?.show?.(settingsContext)).toBe(false);
+    });
   });
 
   describe('Langfuse connection visibility', () => {

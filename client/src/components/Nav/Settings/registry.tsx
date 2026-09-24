@@ -43,6 +43,7 @@ import { TokenCredits, AutoRefill } from './BillingControls';
 import AdminPanel from '../SettingsTabs/General/AdminPanel';
 import SharedLinks from '../SettingsTabs/Data/SharedLinks';
 import ImageResize from '../SettingsTabs/Chat/ImageResize';
+import UsageLink from '../SettingsTabs/General/UsageLink';
 import { showThinkingAtom } from '~/store/showThinking';
 import ProviderKeys from '../SettingsTabs/ProviderKeys';
 import { autoScrollAtom } from '~/store/autoScroll';
@@ -190,6 +191,15 @@ export const registry: SettingEntry[] = [
     keywords: ['admin', 'panel', 'dashboard'],
     Component: AdminPanel,
     show: (ctx) => ctx.adminPanelURL !== '',
+  },
+  {
+    id: 'usagePage',
+    tab: GENERAL,
+    section: 'admin',
+    labelKey: 'com_usage_title',
+    keywords: ['usage', 'cost', 'billing', 'tokens', 'consumo', 'costo'],
+    Component: UsageLink,
+    show: (ctx) => ctx.isAdmin,
   },
 
   // Chat · Sending
