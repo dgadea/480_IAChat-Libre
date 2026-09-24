@@ -842,6 +842,20 @@ export const tPluginAuthConfigSchema = z.object({
 
 export type TPluginAuthConfig = z.infer<typeof tPluginAuthConfigSchema>;
 
+/** One argument of an MCP tool an agent can preset, as described to the agent editor. */
+export const mcpToolParamSchema = z.object({
+  name: z.string(),
+  type: z.enum(['string', 'number', 'integer', 'boolean']),
+  description: z.string().optional(),
+  enum: z.array(z.union([z.string(), z.number(), z.boolean()])).optional(),
+  minimum: z.number().optional(),
+  maximum: z.number().optional(),
+  default: z.union([z.string(), z.number(), z.boolean()]).optional(),
+  required: z.boolean().optional(),
+});
+
+export type MCPToolParam = z.infer<typeof mcpToolParamSchema>;
+
 export const tPluginSchema = z.object({
   name: z.string(),
   pluginKey: z.string(),
@@ -855,6 +869,8 @@ export const tPluginSchema = z.object({
   /** Raw upstream tool name when the model-facing key stripped a redundant
    *  server-name prefix — proves upstream identity for legacy id migration. */
   serverToolName: z.string().optional(),
+  /** The arguments of an MCP tool an agent can preset with a default or fixed value. */
+  params: z.array(mcpToolParamSchema).optional(),
 });
 
 export type TPlugin = z.infer<typeof tPluginSchema>;

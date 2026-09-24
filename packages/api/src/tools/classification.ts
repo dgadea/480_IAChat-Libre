@@ -26,6 +26,7 @@ import type { CodeEnvironmentConfig, CodeExecutionContext } from '~/agents/execu
 import type { CodeCapabilityConfigLoader } from '~/code/capabilities';
 import { supportsProgrammaticCodeExecution } from '~/code/capabilities';
 import { sanitizeGeminiSchema } from '~/mcp/zod';
+import { applyParamSchema } from '~/mcp/params';
 
 export type { LCTool, LCToolRegistry, AllowedCaller, JsonSchemaType };
 
@@ -152,7 +153,7 @@ export function buildToolRegistryFromAgentOptions(
       toolDef.description = description;
     }
     if (parameters) {
-      toolDef.parameters = parameters;
+      toolDef.parameters = applyParamSchema(parameters, agentOptions?.params);
     }
     if (tool.serverName) {
       toolDef.serverName = tool.serverName;

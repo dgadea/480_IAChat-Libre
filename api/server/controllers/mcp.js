@@ -26,6 +26,7 @@ const {
   isMCPOAuthSecretReentryRequiredError,
   prepareMCPServerOAuthDeletion,
   cleanupDeletedMCPServerOAuthUsers,
+  describeToolParams,
 } = require('@librechat/api');
 const {
   Constants,
@@ -296,6 +297,7 @@ const getMCPTools = async (req, res) => {
                *  server-name prefix — the agent editor migrates legacy
                *  persisted ids only when this proves the same tool. */
               ...(toolData.serverToolName != null && { serverToolName: toolData.serverToolName }),
+              params: describeToolParams(toolData.function.parameters),
             });
           }
         }

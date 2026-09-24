@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { Button } from '@librechat/client';
-import { Check, Clock, Code2, Captions, Info, Zap } from 'lucide-react';
+import { Check, Clock, Code2, Captions, Info, SlidersHorizontal, Zap } from 'lucide-react';
 import type { AgentToolType } from 'librechat-data-provider';
 import OptionToggle from './OptionToggle';
+import ToolParams from './ToolParams';
 import { useLocalize } from '~/hooks';
 import { cn } from '~/utils';
 
@@ -21,6 +22,8 @@ interface MCPToolItemProps {
   programmaticToolsAvailable: boolean;
   backgroundToolsEnabled: boolean;
   toolIntentsEnabled: boolean;
+  /** How many of this tool's arguments the agent presets. */
+  presetCount?: number;
   onToggleSelect: () => void;
   onToggleDefer: () => void;
   onToggleProgrammatic: () => void;
@@ -48,12 +51,16 @@ export default function MCPToolItem({
   programmaticToolsAvailable,
   backgroundToolsEnabled,
   toolIntentsEnabled,
+  presetCount = 0,
 }: MCPToolItemProps) {
   const localize = useLocalize();
   const [expanded, setExpanded] = useState(false);
 
   const description = tool.metadata.description?.trim();
   const detailsId = `mcp-tool-details-${tool.tool_id}`;
+  const params = isSelected ? (tool.metadata.params ?? []) : [];
+  const hasParams = params.length > 0;
+  const DetailsIcon = hasParams ? SlidersHorizontal : Info;
 
   return (
     <div className="overflow-hidden rounded-lg">
@@ -136,13 +143,22 @@ export default function MCPToolItem({
             onClick={() => setExpanded((value) => !value)}
             aria-expanded={expanded}
             aria-controls={detailsId}
-            aria-label={localize('com_ui_tools_info')}
+            aria-label={localize(hasParams ? 'com_ui_mcp_tool_details' : 'com_ui_tools_info')}
             className={cn(
               iconButton,
-              expanded ? 'text-text-primary' : 'text-text-secondary hover:text-text-primary',
+              'relative',
+              expanded || presetCount > 0
+                ? 'text-text-primary'
+                : 'text-text-secondary hover:text-text-primary',
             )}
           >
-            <Info className="size-4" aria-hidden="true" />
+            <DetailsIcon className="size-4" aria-hidden="true" />
+            {presetCount > 0 && (
+              <span
+                aria-hidden="true"
+                className="absolute right-0.5 top-0.5 size-1.5 rounded-full bg-surface-inverted"
+              />
+            )}
           </Button>
         </div>
       </div>
@@ -165,6 +181,11 @@ export default function MCPToolItem({
             <p className="max-h-44 overflow-y-auto whitespace-pre-wrap text-xs leading-relaxed text-text-secondary">
               {description || localize('com_ui_mcp_no_description')}
             </p>
+            {hasParams && (
+              <div className="mt-3 border-t border-border-light pt-3">
+                <ToolParams toolId={tool.tool_id} params={params} />
+              </div>
+            )}
           </div>
         </div>
       </div>

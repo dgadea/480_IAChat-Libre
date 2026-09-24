@@ -725,6 +725,7 @@ const loadTools = async ({
           serverName: config.serverName,
           provider: agent?.provider ?? endpoint,
           config: config.config,
+          toolOptions: agent?.tool_options,
         };
 
         if (config.type === 'all' && toolConfigs.length === 1) {

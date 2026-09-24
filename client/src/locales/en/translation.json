@@ -2917,5 +2917,15 @@
   "com_insights_invalid_date_range": "Choose an end date after the start date, within {{days}} days.",
   "com_insights_sparkline_accessibility": "{{label}} over time",
   "com_nav_mobile_drawer_strip": "Show chat beside the sidebar on mobile",
-  "com_nav_mobile_drawer_strip_info": "The sidebar stops short of the edge so a strip of the conversation stays visible. Tapping it closes the sidebar."
+  "com_nav_mobile_drawer_strip_info": "The sidebar stops short of the edge so a strip of the conversation stays visible. Tapping it closes the sidebar.",
+  "com_ui_mcp_params": "Parameters",
+  "com_ui_mcp_params_info": "Preset this tool's arguments for this agent. A default is used unless the user asks for another value; a fixed value is always used and hidden from the model.",
+  "com_ui_mcp_param_mode_auto": "Model decides",
+  "com_ui_mcp_param_mode_default": "Default",
+  "com_ui_mcp_param_mode_fixed": "Fixed",
+  "com_ui_mcp_param_mode_label": "How {{0}} is set",
+  "com_ui_mcp_param_value_label": "Value for {{0}}",
+  "com_ui_mcp_param_range": "From {{0}} to {{1}}",
+  "com_ui_mcp_param_invalid": "Enter a value this argument accepts.",
+  "com_ui_mcp_tool_details": "Details and parameters"
 }

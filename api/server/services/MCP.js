@@ -18,6 +18,9 @@ const {
   toProviderToolDefinition,
   resolveMCPServerContext,
   normalizeJsonSchema,
+  applyParamSchema,
+  getParamOverrides,
+  applyParamArguments,
   GenerationJobManager,
   resolveJsonSchemaRefs,
   sanitizeGeminiSchema,
@@ -884,6 +887,7 @@ async function createMCPTools({
   oboIdentityContext,
   streamId = null,
   jobCreatedAt,
+  toolOptions,
 }) {
   let recoveryPolicy;
   const serverConfig =
@@ -957,6 +961,7 @@ async function createMCPTools({
       streamId,
       jobCreatedAt,
       recoveryPolicy,
+      toolOptions,
       availableTools: result.availableTools,
       serverName,
       /** Model-facing key: matches the normalized `availableTools` keys and
@@ -1024,6 +1029,7 @@ async function createMCPTool({
   streamId = null,
   jobCreatedAt,
   recoveryPolicy,
+  toolOptions,
 }) {
   /** `loadTools` already resolved the server for this key; parsing is the fallback. */
   const [parsedToolName, parsedServerName] = splitMCPToolKey(
@@ -1201,6 +1207,7 @@ async function createMCPTool({
     streamId,
     jobCreatedAt,
     recoveryPolicy,
+    toolOptions,
   });
 }
 
@@ -1223,12 +1230,16 @@ function createToolInstance({
   streamId = null,
   jobCreatedAt,
   recoveryPolicy,
+  toolOptions,
 }) {
   /** @type {LCTool} */
   const { description, parameters } = toolDefinition;
   const isGoogle = capturedProvider === Providers.VERTEXAI || capturedProvider === Providers.GOOGLE;
+  const normalizedToolKey = `${toolName}${Constants.mcp_delimiter}${normalizeServerName(serverName)}`;
 
-  let schema = parameters ? normalizeJsonSchema(resolveJsonSchemaRefs(parameters)) : null;
+  const fullSchema = parameters ? normalizeJsonSchema(resolveJsonSchemaRefs(parameters)) : null;
+  const paramOverrides = getParamOverrides(toolOptions, normalizedToolKey);
+  let schema = fullSchema ? applyParamSchema(fullSchema, paramOverrides) : null;
 
   if (schema && isGoogle) {
     // Gemini/Vertex AI accept only a subset of JSON Schema; sanitize so MCP tools with
@@ -1245,8 +1256,6 @@ function createToolInstance({
       required: [],
     };
   }
-
-  const normalizedToolKey = `${toolName}${Constants.mcp_delimiter}${normalizeServerName(serverName)}`;
 
   /** @type {(toolArguments: Object | string, config?: GraphRunnableConfig) => Promise<unknown>} */
   const _call = async (toolArguments, config) => {
@@ -1317,7 +1326,10 @@ function createToolInstance({
          *  a redundant server-name prefix calls the ORIGINAL tool. */
         toolName: serverToolName,
         provider,
-        toolArguments,
+        toolArguments:
+          typeof toolArguments === 'string'
+            ? toolArguments
+            : applyParamArguments(toolArguments, fullSchema, paramOverrides),
         options: {
           signal: derivedSignal,
         },

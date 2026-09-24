@@ -149,49 +149,50 @@ export const graphEdgeSchema: z.ZodObject<
     .transform((v) => (v === '' ? undefined : v)),
 });
 
-/** Per-tool options schema (defer_loading, allowed_callers, run_in_background, describe_intent) */
-export const toolOptionsSchema: z.ZodObject<
-  {
-    defer_loading: z.ZodOptional<z.ZodBoolean>;
-    allowed_callers: z.ZodOptional<z.ZodArray<z.ZodEnum<['direct', 'code_execution']>, 'many'>>;
-    run_in_background: z.ZodOptional<z.ZodBoolean>;
-    describe_intent: z.ZodOptional<z.ZodBoolean>;
-  },
-  'strip'
-> = z.object({
+type ToolParamOverrideShape = {
+  mode: z.ZodEnum<['default', 'fixed']>;
+  value: z.ZodUnion<[z.ZodString, z.ZodNumber, z.ZodBoolean]>;
+};
+
+/** One agent-level override of an MCP tool argument, checked against the tool's schema at use. */
+const toolParamOverrideSchema: z.ZodObject<ToolParamOverrideShape, 'strip'> = z.object({
+  mode: z.enum(['default', 'fixed']),
+  value: z.union([z.string().max(4000), z.number().finite(), z.boolean()]),
+});
+
+type ToolOptionsShape = {
+  defer_loading: z.ZodOptional<z.ZodBoolean>;
+  allowed_callers: z.ZodOptional<z.ZodArray<z.ZodEnum<['direct', 'code_execution']>, 'many'>>;
+  run_in_background: z.ZodOptional<z.ZodBoolean>;
+  describe_intent: z.ZodOptional<z.ZodBoolean>;
+  image_model: z.ZodOptional<z.ZodString>;
+  aspect_ratio: z.ZodOptional<z.ZodString>;
+  resolution: z.ZodOptional<z.ZodString>;
+  treatment: z.ZodOptional<z.ZodString>;
+  sound: z.ZodOptional<z.ZodString>;
+  params: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodObject<ToolParamOverrideShape, 'strip'>>>;
+};
+
+/**
+ * Per-tool options schema. Every field `ToolOptions` declares must appear here: `z.object`
+ * strips unknown keys, so a field left out is silently dropped when the agent is saved.
+ */
+export const toolOptionsSchema: z.ZodObject<ToolOptionsShape, 'strip'> = z.object({
   defer_loading: z.boolean().optional(),
   allowed_callers: z.array(z.enum(['direct', 'code_execution'])).optional(),
   run_in_background: z.boolean().optional(),
   describe_intent: z.boolean().optional(),
+  image_model: z.string().max(128).optional(),
+  aspect_ratio: z.string().max(32).optional(),
+  resolution: z.string().max(32).optional(),
+  treatment: z.string().max(64).optional(),
+  sound: z.string().max(64).optional(),
+  params: z.record(z.string().max(256), toolParamOverrideSchema).optional(),
 });
 
 /** Agent tool options - map of tool_id to tool options */
 export const agentToolOptionsSchema: z.ZodOptional<
-  z.ZodRecord<
-    z.ZodString,
-    z.ZodObject<
-      {
-        defer_loading: z.ZodOptional<z.ZodBoolean>;
-        allowed_callers: z.ZodOptional<z.ZodArray<z.ZodEnum<['direct', 'code_execution']>, 'many'>>;
-        run_in_background: z.ZodOptional<z.ZodBoolean>;
-        describe_intent: z.ZodOptional<z.ZodBoolean>;
-      },
-      'strip',
-      z.ZodTypeAny,
-      {
-        defer_loading?: boolean | undefined;
-        allowed_callers?: ('direct' | 'code_execution')[] | undefined;
-        run_in_background?: boolean | undefined;
-        describe_intent?: boolean | undefined;
-      },
-      {
-        defer_loading?: boolean | undefined;
-        allowed_callers?: ('direct' | 'code_execution')[] | undefined;
-        run_in_background?: boolean | undefined;
-        describe_intent?: boolean | undefined;
-      }
-    >
-  >
+  z.ZodRecord<z.ZodString, z.ZodObject<ToolOptionsShape, 'strip'>>
 > = z.record(z.string(), toolOptionsSchema).optional();
 
 /**

@@ -135,6 +135,21 @@ export type ToolOptions = {
   treatment?: string;
   /** Default sound direction for this agent's video, likewise folded into the prompt. */
   sound?: string;
+  /**
+   * Per-argument overrides for an MCP tool, keyed by the property name in the tool's input
+   * schema. A `fixed` value is applied to every call and hidden from the model; a `default`
+   * value is filled in when the model leaves the argument out, and shown to it as the default.
+   */
+  params?: Record<string, ToolParamOverride>;
+};
+
+export type ToolParamMode = 'default' | 'fixed';
+
+export type ToolParamValue = string | number | boolean;
+
+export type ToolParamOverride = {
+  mode: ToolParamMode;
+  value: ToolParamValue;
 };
 
 /**

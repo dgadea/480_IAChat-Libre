@@ -583,6 +583,7 @@ export default function McpSection({ item }: Props) {
                   programmaticToolsAvailable={programmaticToolsAvailable}
                   backgroundToolsEnabled={backgroundToolsEnabled}
                   toolIntentsEnabled={toolIntentsEnabled}
+                  presetCount={Object.keys(formToolOptions?.[tool.tool_id]?.params ?? {}).length}
                   onToggleSelect={() => toggleToolSelect(tool.tool_id)}
                   onToggleDefer={() => toggleToolDefer(tool.tool_id)}
                   onToggleProgrammatic={() => toggleToolProgrammatic(tool.tool_id)}

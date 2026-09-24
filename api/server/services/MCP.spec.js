@@ -2157,6 +2157,78 @@ describe('User parameter passing tests', () => {
       );
     });
 
+    it("applies the agent's argument presets to the schema and to the call", async () => {
+      const mockUser = { id: 'params-user', role: 'USER' };
+      const mockRes = { write: jest.fn(), flush: jest.fn() };
+      const { getRoleByName } = require('~/models');
+      getRoleByName.mockResolvedValue({
+        permissions: {
+          [PermissionTypes.MCP_SERVERS]: {
+            [Permissions.USE]: true,
+          },
+        },
+      });
+      const callTool = jest.fn().mockResolvedValue(['ok', null]);
+      mockGetMCPManager.mockReturnValue({ callTool });
+
+      const toolKey = `seedance${D}higgsfield`;
+      const mcpTool = await createMCPTool({
+        res: mockRes,
+        user: mockUser,
+        toolKey,
+        provider: 'openai',
+        userMCPAuthMap: {},
+        toolOptions: {
+          [toolKey]: {
+            params: {
+              resolution: { mode: 'fixed', value: '480p' },
+              duration: { mode: 'default', value: 10 },
+            },
+          },
+        },
+        availableTools: {
+          [toolKey]: {
+            function: {
+              name: toolKey,
+              description: 'Seedance image to video',
+              parameters: {
+                type: 'object',
+                properties: {
+                  image_url: { type: 'string' },
+                  duration: { type: 'integer', minimum: 4, maximum: 30 },
+                  resolution: { type: 'string', enum: ['480p', '720p'] },
+                },
+                required: ['image_url', 'resolution'],
+              },
+            },
+          },
+        },
+      });
+
+      expect(mcpTool.schema.properties.resolution).toBeUndefined();
+      expect(mcpTool.schema.properties.duration.default).toBe(10);
+      expect(mcpTool.schema.required).toEqual(['image_url']);
+
+      await mcpTool.invoke(
+        { image_url: 'https://r2.example.com/jeep.png' },
+        {
+          configurable: { user: mockUser },
+          metadata: { provider: 'openai', thread_id: 'thread-1', run_id: 'run-1' },
+          toolCall: {},
+        },
+      );
+
+      expect(callTool).toHaveBeenCalledWith(
+        expect.objectContaining({
+          toolArguments: {
+            image_url: 'https://r2.example.com/jeep.png',
+            resolution: '480p',
+            duration: 10,
+          },
+        }),
+      );
+    });
+
     it('resolves a legacy pre-strip tool key to the stripped definition without reinit', async () => {
       const mockUser = { id: 'legacy-prefix-user', role: 'USER' };
       const mockRes = { write: jest.fn(), flush: jest.fn() };

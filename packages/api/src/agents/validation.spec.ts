@@ -390,6 +390,52 @@ describe('agentUpdateSchema with subagents', () => {
   });
 });
 
+describe('agent tool_options', () => {
+  const toolOptions = {
+    gemini_video_gen: {
+      image_model: 'veo-3.1',
+      aspect_ratio: '9:16',
+      resolution: '720p',
+      treatment: 'animation',
+      sound: 'ambient',
+    },
+    seedance_mcp_higgsfield: {
+      defer_loading: true,
+      params: {
+        duration: { mode: 'default', value: 10 },
+        resolution: { mode: 'fixed', value: '720p' },
+        generate_audio: { mode: 'fixed', value: true },
+      },
+    },
+  };
+
+  it.each([
+    ['create', agentCreateSchema],
+    ['update', agentUpdateSchema],
+  ])('keeps generation settings and argument overrides on %s', (_label, schema) => {
+    const result = schema.safeParse({
+      provider: 'openAI',
+      model: 'gpt-4o',
+      tool_options: toolOptions,
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.success && result.data.tool_options).toEqual(toolOptions);
+  });
+
+  it('rejects an override with an unknown mode or a non-scalar value', () => {
+    const badMode = agentUpdateSchema.safeParse({
+      tool_options: { t: { params: { duration: { mode: 'always', value: 10 } } } },
+    });
+    const badValue = agentUpdateSchema.safeParse({
+      tool_options: { t: { params: { duration: { mode: 'fixed', value: [10] } } } },
+    });
+
+    expect(badMode.success).toBe(false);
+    expect(badValue.success).toBe(false);
+  });
+});
+
 describe('validateAgentModel', () => {
   const request = {} as Request<unknown, unknown, unknown>;
   const response = {} as Response;

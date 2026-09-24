@@ -135,6 +135,8 @@ export type MCPTool = {
   /** Raw upstream tool name when the model-facing key stripped a redundant
    *  server-name prefix — gates the agent editor's legacy id migration. */
   serverToolName?: string;
+  /** The arguments an agent can preset; absent when the tool takes none it can. */
+  params?: s.MCPToolParam[];
 };
 
 export type MCPServer = {

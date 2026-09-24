@@ -28,6 +28,7 @@ export * from './mcp/zod';
 export * from './mcp/errors';
 export * from './mcp/media';
 export * from './mcp/attachments';
+export * from './mcp/params';
 export * from './mcp/openid';
 export * from './mcp/cache';
 export * from './mcp/tools';
