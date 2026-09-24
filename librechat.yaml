@@ -23,6 +23,17 @@ fileConfig:
     baseMs: 20000
     perMbMs: 4000
 
+# Cuando una herramienta MCP (Higgsfield, por ejemplo) devuelve un enlace a una
+# imagen o un video en vez del archivo, se descarga a R2 y se adjunta al chat:
+# se ve en línea y sigue ahí aunque el proveedor borre su copia. Si el resultado
+# trae un video, las imágenes que lo acompañan se toman como miniaturas y se
+# omiten.
+mcpSettings:
+  mediaCapture:
+    enabled: true
+    maxBytes: 104857600
+    maxPerCall: 4
+
 # Solo estos dominios pueden REGISTRARSE (y usar "olvidé mi contraseña"
 # y login social). El login local de cuentas ya existentes no se filtra.
 registration:

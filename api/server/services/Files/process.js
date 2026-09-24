@@ -1666,12 +1666,31 @@ async function saveBase64Image(
  * @param {FileContext} params.context
  * @returns {Promise<MongoFile>}
  */
-async function saveBase64Video(url, { req, file_id: _file_id, filename: _filename, context }) {
+async function saveBase64Video(url, { req, file_id, filename, context }) {
+  const { buffer, type } = base64ToBuffer(url);
+  return saveMediaBuffer(buffer, { req, type: type || 'video/mp4', file_id, filename, context });
+}
+
+/**
+ * Stores generated media bytes as-is and records the file. Unlike `saveBase64Image`, nothing is
+ * resized or re-encoded, so the record's type is the type the bytes arrived with.
+ *
+ * @param {Buffer} buffer
+ * @param {object} params
+ * @param {ServerRequest} params.req
+ * @param {string} params.type - The media type of `buffer`.
+ * @param {string} [params.file_id]
+ * @param {string} params.filename
+ * @param {FileContext} params.context
+ * @returns {Promise<MongoFile>}
+ */
+async function saveMediaBuffer(
+  buffer,
+  { req, type, file_id: _file_id, filename: _filename, context },
+) {
   const retentionExpiryPromise = getRetentionExpiry(req);
   const appConfig = req.config;
   const file_id = _file_id ?? v4();
-  const { buffer, type: declaredType } = base64ToBuffer(url);
-  const type = declaredType || 'video/mp4';
 
   let filename = `${file_id}-${_filename}`;
   if (!path.extname(filename)) {
@@ -1816,6 +1835,7 @@ module.exports = {
   processFileURL,
   saveBase64Image,
   saveBase64Video,
+  saveMediaBuffer,
   base64ToBuffer,
   processImageFile,
   uploadImageBuffer,

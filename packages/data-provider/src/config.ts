@@ -3002,6 +3002,26 @@ export const configSchema = z.object({
           authorizationFenceRetryBatchSize: z.number().int().positive().max(10_000).default(100),
         })
         .default({}),
+      /** Stores images and videos an MCP tool links to (rather than embeds) as chat attachments,
+       * so they preview inline and outlive the provider's CDN. Off by default. */
+      mediaCapture: z
+        .object({
+          enabled: z.boolean().default(false),
+          maxBytes: z
+            .number()
+            .int()
+            .positive()
+            .max(1024 * 1024 * 1024)
+            .default(100 * 1024 * 1024),
+          timeoutMs: z
+            .number()
+            .int()
+            .positive()
+            .max(10 * 60_000)
+            .default(120_000),
+          maxPerCall: z.number().int().positive().max(20).default(4),
+        })
+        .default({}),
     })
     .optional(),
   interface: interfaceSchema,

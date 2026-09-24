@@ -33,11 +33,16 @@ const {
   getToolInputValidationDetails,
   captureSubagentIdentity,
   collectToolCallIds,
+  captureMCPMedia,
 } = require('@librechat/api');
 const { processFileCitations } = require('~/server/services/Files/Citations');
 const { processCodeOutput, runPreviewFinalize } = require('~/server/services/Files/Code/process');
 const { preflightCodeOutputBatch } = require('~/server/services/Files/Code/preflight');
-const { saveBase64Image, saveBase64Video } = require('~/server/services/Files/process');
+const {
+  saveBase64Image,
+  saveBase64Video,
+  saveMediaBuffer,
+} = require('~/server/services/Files/process');
 
 function isHostFileAuthoringArtifact(artifact) {
   return artifact?.[HOST_FILE_AUTHORING_ARTIFACT_KEY] === true;
@@ -959,6 +964,27 @@ function writeAttachmentUpdate(res, streamId, attachment, expectedCreatedAt) {
  * @returns {ToolEndCallback} The tool end callback.
  */
 function createToolEndCallback({ req, res, artifactPromises, streamId = null, jobCreatedAt }) {
+  /** Linked media already stored in this response, shared across its tool calls. */
+  const capturedMedia = new Set();
+
+  const emitToolFile = (file, output, metadata) => {
+    const fileMetadata = Object.assign(file, {
+      messageId: metadata.run_id,
+      toolCallId: output.tool_call_id,
+      conversationId: metadata.thread_id,
+    });
+    if (!streamId && !res.headersSent) {
+      return fileMetadata;
+    }
+
+    if (!fileMetadata) {
+      return null;
+    }
+
+    writeAttachment(res, streamId, fileMetadata, jobCreatedAt);
+    return fileMetadata;
+  };
+
   /**
    * @type {ToolEndCallback}
    */
@@ -970,6 +996,25 @@ function createToolEndCallback({ req, res, artifactPromises, streamId = null, jo
 
     if (!output.artifact) {
       return;
+    }
+
+    if (output.artifact.media) {
+      artifactPromises.push(
+        ...captureMCPMedia(output.artifact.media, {
+          settings: req.config?.mcpSettings?.mediaCapture,
+          allowedAddresses: req.config?.mcpSettings?.allowedAddresses,
+          captured: capturedMedia,
+          store: async (download) => {
+            const file = await saveMediaBuffer(download.buffer, {
+              req,
+              type: download.type,
+              filename: download.filename,
+              context: FileContext.image_generation,
+            });
+            return emitToolFile(file, output, metadata);
+          },
+        }),
+      );
     }
 
     if (output.artifact[Tools.file_search]) {
@@ -1097,21 +1142,7 @@ function createToolEndCallback({ req, res, artifactPromises, streamId = null, jo
                   endpoint: metadata.provider,
                   context: FileContext.image_generation,
                 });
-            const fileMetadata = Object.assign(file, {
-              messageId: metadata.run_id,
-              toolCallId: output.tool_call_id,
-              conversationId: metadata.thread_id,
-            });
-            if (!streamId && !res.headersSent) {
-              return fileMetadata;
-            }
-
-            if (!fileMetadata) {
-              return null;
-            }
-
-            writeAttachment(res, streamId, fileMetadata, jobCreatedAt);
-            return fileMetadata;
+            return emitToolFile(file, output, metadata);
           })().catch((error) => {
             logger.error('Error processing artifact content:', error);
             return null;

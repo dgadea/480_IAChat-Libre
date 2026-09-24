@@ -2,6 +2,7 @@ import crypto from 'node:crypto';
 import { Tools } from 'librechat-data-provider';
 import type { UIResource } from 'librechat-data-provider';
 import type * as t from './types';
+import { collectMediaLinks } from './media';
 
 export const DEFAULT_MCP_IMAGE_DATA_MAX_BYTES: number = 10 * 1024 * 1024;
 
@@ -227,8 +228,9 @@ export function formatToolContent(
   result: t.MCPToolCallResponse,
   provider: t.Provider,
 ): t.FormattedContentResult {
+  const media = collectMediaLinks(result?.content);
   if (!RECOGNIZED_PROVIDERS.has(provider)) {
-    return [parseAsString(result), undefined];
+    return [parseAsString(result), media.length ? { media } : undefined];
   }
 
   const content = result?.content ?? [];
@@ -351,6 +353,10 @@ UI Resource Markers Available:
       ...artifacts,
       [Tools.ui_resources]: { data: uiResources },
     };
+  }
+
+  if (media.length > 0) {
+    artifacts = { ...artifacts, media };
   }
 
   return [currentTextBlock || (artifacts !== undefined ? '' : '(No response)'), artifacts];

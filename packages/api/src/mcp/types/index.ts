@@ -149,6 +149,14 @@ export type FileSearchSource = {
   [key: string]: unknown;
 };
 
+export type MCPMediaKind = 'image' | 'video';
+
+/** An image or video an MCP result links to by URL, rather than embeds. */
+export interface MCPMediaLink {
+  url: string;
+  kind: MCPMediaKind;
+}
+
 export type Artifacts =
   | {
       content?: FormattedContent[];
@@ -161,6 +169,8 @@ export type Artifacts =
       };
       [Tools.web_search]?: SearchResultData;
       files?: Array<{ id: string; name: string }>;
+      /** Linked media for the host to store; never projected into the model's input. */
+      media?: MCPMediaLink[];
       session_id?: string;
       file_ids?: string[];
     }
