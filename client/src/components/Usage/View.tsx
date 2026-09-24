@@ -12,6 +12,7 @@ import { ModelsTable, Panel, UsersTable } from './Tables';
 import { useDocumentTitle, useLocalize } from '~/hooks';
 import { useUsageQuery } from '~/data-provider';
 import { downloadCsv, usageCsv } from './csv';
+import Billing from './Billing';
 import { cn } from '~/utils';
 
 type Preset = 'month' | '7d' | '30d' | '90d';
@@ -197,6 +198,7 @@ export default function UsageView() {
               )}
             </>
           )}
+          {data && <Billing params={params} locale={locale} localize={localize} />}
         </div>
       </main>
     </div>

@@ -470,6 +470,7 @@ export const insights = () => `${BASE_URL}/api/insights`;
 export const insightsAccess = () => `${insights()}/access`;
 
 export const usage = () => `${BASE_URL}/api/usage`;
+export const usageProviders = () => `${usage()}/providers`;
 
 /* Conversation traces */
 export const conversationTrace = (conversationId: string) =>

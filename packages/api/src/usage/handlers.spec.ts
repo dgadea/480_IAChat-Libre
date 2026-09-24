@@ -1,10 +1,12 @@
 import type { TUsageResponse } from 'librechat-data-provider';
 import type { Response } from 'express';
+import type { BillingSource } from './billing';
 import type { ServerRequest } from '~/types';
-import { createUsageHandler } from './handlers';
+import { createProviderBillingHandler, createUsageHandler } from './handlers';
+import { BillingError } from './billing';
 
 jest.mock('@librechat/data-schemas', () => ({
-  logger: { error: jest.fn() },
+  logger: { error: jest.fn(), warn: jest.fn() },
 }));
 
 const emptyUsage: TUsageResponse = {
@@ -76,5 +78,75 @@ describe('createUsageHandler', () => {
     );
 
     expect(status).toHaveBeenCalledWith(500);
+  });
+});
+
+describe('createProviderBillingHandler', () => {
+  const query = { fromTimestamp: '2026-09-01T10:00:00Z', toTimestamp: '2026-09-02T10:00:00Z' };
+
+  it('reads configured providers over whole UTC days and marks the rest unconfigured', async () => {
+    const openai: BillingSource = {
+      provider: 'openai',
+      fetchCosts: jest.fn().mockResolvedValue(
+        new Map([
+          ['gpt-5-mini', 0.1],
+          ['gpt-5', 3.3333333333],
+        ]),
+      ),
+    };
+    const { response, json } = createResponse();
+
+    await createProviderBillingHandler({ sources: { openai } })(createRequest(query), response);
+
+    expect(openai.fetchCosts).toHaveBeenCalledWith({
+      from: new Date('2026-09-01T00:00:00.000Z'),
+      to: new Date('2026-09-03T00:00:00.000Z'),
+    });
+    expect(json).toHaveBeenCalledWith({
+      from: '2026-09-01T00:00:00.000Z',
+      to: '2026-09-03T00:00:00.000Z',
+      providers: [
+        {
+          provider: 'openai',
+          configured: true,
+          cost: 3.433333,
+          lines: [
+            { name: 'gpt-5', cost: 3.333333 },
+            { name: 'gpt-5-mini', cost: 0.1 },
+          ],
+        },
+        { provider: 'anthropic', configured: false, cost: 0, lines: [] },
+      ],
+    });
+  });
+
+  it('keeps answering when one provider fails, naming why', async () => {
+    const anthropic: BillingSource = {
+      provider: 'anthropic',
+      fetchCosts: jest.fn().mockRejectedValue(new BillingError('auth', 401)),
+    };
+    const openai: BillingSource = {
+      provider: 'openai',
+      fetchCosts: jest.fn().mockRejectedValue(new Error('socket hang up')),
+    };
+    const { response, json } = createResponse();
+
+    await createProviderBillingHandler({ sources: { openai, anthropic } })(
+      createRequest(query),
+      response,
+    );
+
+    const { providers } = json.mock.calls[0][0];
+    expect(providers.map((p: { error?: string }) => p.error)).toEqual(['failed', 'auth']);
+  });
+
+  it('rejects an invalid window without calling providers', async () => {
+    const openai: BillingSource = { provider: 'openai', fetchCosts: jest.fn() };
+    const { response, status } = createResponse();
+
+    await createProviderBillingHandler({ sources: { openai } })(createRequest({}), response);
+
+    expect(status).toHaveBeenCalledWith(400);
+    expect(openai.fetchCosts).not.toHaveBeenCalled();
   });
 });

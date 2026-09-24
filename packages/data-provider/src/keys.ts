@@ -28,6 +28,7 @@ export enum QueryKeys {
   insights = 'insights',
   insightsAccess = 'insightsAccess',
   usage = 'usage',
+  usageProviders = 'usageProviders',
   assistants = 'assistants',
   assistant = 'assistant',
   agents = 'agents',

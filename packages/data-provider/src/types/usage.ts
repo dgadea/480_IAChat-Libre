@@ -36,3 +36,30 @@ export type TUsageResponse = {
   users: TUsageUser[];
   models: TUsageModel[];
 };
+
+export type TUsageProvider = 'openai' | 'anthropic';
+
+/** Why a provider's billed cost could not be read */
+export type TProviderBillingError = 'auth' | 'rate_limit' | 'failed';
+
+export type TProviderLineCost = {
+  /** The model, or the provider's own line item name for costs not tied to one */
+  name: string;
+  cost: number;
+};
+
+export type TProviderBilling = {
+  provider: TUsageProvider;
+  /** False until the provider's admin key is set on the server */
+  configured: boolean;
+  cost: number;
+  lines: TProviderLineCost[];
+  error?: TProviderBillingError;
+};
+
+export type TProviderBillingResponse = {
+  /** Providers bill whole UTC days, so the window is widened to day boundaries */
+  from: string;
+  to: string;
+  providers: TProviderBilling[];
+};

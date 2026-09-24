@@ -7,7 +7,7 @@ import type {
   TTraceRecordDetail,
 } from './types/traces';
 import type { TInsightsAccessResponse, TInsightsParams, TInsightsResponse } from './types/insights';
-import type { TUsageParams, TUsageResponse } from './types/usage';
+import type { TProviderBillingResponse, TUsageParams, TUsageResponse } from './types/usage';
 import type { TFileConfig } from './file-config';
 import type * as tl from './types/tools';
 import type * as t from './types';
@@ -47,6 +47,10 @@ export function getInsightsAccess(): Promise<TInsightsAccessResponse> {
 
 export function getUsage(params: TUsageParams): Promise<TUsageResponse> {
   return request.get(`${endpoints.usage()}?${new URLSearchParams(params).toString()}`);
+}
+
+export function getUsageProviders(params: TUsageParams): Promise<TProviderBillingResponse> {
+  return request.get(`${endpoints.usageProviders()}?${new URLSearchParams(params).toString()}`);
 }
 
 export function getConversationTraceAvailability(
