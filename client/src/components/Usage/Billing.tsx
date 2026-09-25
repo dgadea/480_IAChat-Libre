@@ -26,6 +26,7 @@ const adminKeyVariables: Record<TUsageProvider, string> = {
 
 const errorKeys: Record<TProviderBillingError, TranslationKeys> = {
   auth: 'com_usage_billing_error_auth',
+  needs_admin_key: 'com_usage_billing_error_needs_admin_key',
   rate_limit: 'com_usage_billing_error_rate_limit',
   failed: 'com_usage_billing_error_failed',
 };
@@ -44,7 +45,7 @@ function ProviderStatus({ billing, localize }: { billing: TProviderBilling; loca
     return (
       <p className="flex items-center gap-2 text-sm" role="alert">
         <AlertCircle className="size-4 shrink-0 text-status-error" aria-hidden="true" />
-        {localize(errorKeys[billing.error])}
+        {localize(errorKeys[billing.error], { variable: adminKeyVariables[billing.provider] })}
       </p>
     );
   }

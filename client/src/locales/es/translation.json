@@ -1220,6 +1220,7 @@
   "com_usage_billed": "Facturado",
   "com_usage_billing_error_auth": "El proveedor rechazó la admin key. Verifica que sea una admin key de organización.",
   "com_usage_billing_error_failed": "No se pudo cargar lo facturado. Inténtalo de nuevo.",
+  "com_usage_billing_error_needs_admin_key": "La key que usa el chat no puede leer la facturación: este proveedor solo la entrega con una admin key de organización. Configura {{variable}} para verla.",
   "com_usage_billing_error_rate_limit": "El proveedor está limitando las solicitudes. Inténtalo de nuevo en un minuto.",
   "com_usage_billing_lines": "Costo facturado por modelo en {{name}}",
   "com_usage_billing_loading": "Consultando a los proveedores lo facturado",

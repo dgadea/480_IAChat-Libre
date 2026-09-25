@@ -48,7 +48,7 @@ export type TUsageResponse = {
 export type TUsageProvider = 'openai' | 'anthropic';
 
 /** Why a provider's billed cost could not be read */
-export type TProviderBillingError = 'auth' | 'rate_limit' | 'failed';
+export type TProviderBillingError = 'auth' | 'needs_admin_key' | 'rate_limit' | 'failed';
 
 export type TProviderLineCost = {
   /** The model, or the provider's own line item name for costs not tied to one */

@@ -11,6 +11,8 @@ export type BilledLines = Map<string, number>;
 export type BillingSource = {
   provider: TUsageProvider;
   fetchCosts: (window: BillingWindow) => Promise<BilledLines>;
+  /** Reading costs with the key chats use; providers usually demand an admin key */
+  usesChatKey?: boolean;
 };
 
 export type BillingSourceOptions = {

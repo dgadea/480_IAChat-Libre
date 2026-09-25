@@ -1,8 +1,7 @@
 const express = require('express');
 const {
   createUsageHandler,
-  createOpenAIBilling,
-  createAnthropicBilling,
+  createBillingSources,
   createProviderBillingHandler,
 } = require('@librechat/api');
 const { SystemCapabilities } = require('@librechat/data-schemas');
@@ -12,13 +11,7 @@ const db = require('~/models');
 
 const router = express.Router();
 
-const { OPENAI_ADMIN_KEY, ANTHROPIC_ADMIN_KEY } = process.env;
-const sources = {
-  ...(OPENAI_ADMIN_KEY ? { openai: createOpenAIBilling({ apiKey: OPENAI_ADMIN_KEY }) } : {}),
-  ...(ANTHROPIC_ADMIN_KEY
-    ? { anthropic: createAnthropicBilling({ apiKey: ANTHROPIC_ADMIN_KEY }) }
-    : {}),
-};
+const sources = createBillingSources(process.env);
 
 router.use(requireJwtAuth, requireCapability(SystemCapabilities.READ_USAGE));
 router.get('/', createUsageHandler({ getUsage: db.getUsage }));

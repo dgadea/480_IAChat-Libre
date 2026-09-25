@@ -84,6 +84,9 @@ async function readProvider(
   } catch (error) {
     logger.warn(`[Usage] Could not read ${provider} billing`, error);
     const code = error instanceof BillingError ? error.code : 'failed';
+    if (code === 'auth' && source.usesChatKey) {
+      return { provider, configured: true, cost: 0, lines: [], error: 'needs_admin_key' };
+    }
     return { provider, configured: true, cost: 0, lines: [], error: code };
   }
 }

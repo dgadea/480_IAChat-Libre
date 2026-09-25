@@ -2958,6 +2958,7 @@
   "com_usage_billing_loading": "Asking providers for billed costs",
   "com_usage_billing_not_configured": "Set {{variable}} on the server to show what this provider billed.",
   "com_usage_billing_error_auth": "The provider rejected the admin key. Check that it is an organization admin key.",
+  "com_usage_billing_error_needs_admin_key": "The key chats use cannot read billing: this provider only shares costs with an organization admin key. Set {{variable}} to show them.",
   "com_usage_billing_error_rate_limit": "The provider is limiting requests. Try again in a minute.",
   "com_usage_billing_error_failed": "Billed costs could not be loaded. Try again.",
   "com_usage_billing_lines": "Billed cost by model at {{name}}",

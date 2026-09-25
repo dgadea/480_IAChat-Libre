@@ -96,6 +96,31 @@ describe('Billing', () => {
 
     expect(screen.getByRole('alert')).toHaveTextContent('com_usage_billing_error_auth');
     expect(screen.getByText('com_usage_no_data')).toBeInTheDocument();
+
+    mockUseUsageProvidersQuery.mockReturnValue({
+      isLoading: false,
+      isFetching: false,
+      isError: false,
+      data: {
+        from: '2026-09-01T00:00:00.000Z',
+        to: '2026-09-03T00:00:00.000Z',
+        providers: [
+          { provider: 'openai', configured: true, cost: 0, lines: [], error: 'needs_admin_key' },
+          { provider: 'anthropic', configured: true, cost: 0, lines: [] },
+        ],
+      },
+    });
+    rerender(
+      <Billing
+        params={params}
+        locale="en"
+        localize={localize as Parameters<typeof Billing>[0]['localize']}
+      />,
+    );
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      'com_usage_billing_error_needs_admin_key:OPENAI_ADMIN_KEY',
+    );
+    expect(screen.getByText('com_usage_no_data')).toBeInTheDocument();
   });
 
   it('shows an error when the request itself fails', () => {

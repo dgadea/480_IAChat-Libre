@@ -141,6 +141,23 @@ describe('createProviderBillingHandler', () => {
     expect(providers.map((p: { error?: string }) => p.error)).toEqual(['failed', 'auth']);
   });
 
+  it('says an admin key is needed when the chat key is refused', async () => {
+    const openai: BillingSource = {
+      provider: 'openai',
+      usesChatKey: true,
+      fetchCosts: jest.fn().mockRejectedValue(new BillingError('auth', 403)),
+    };
+    const { response, json } = createResponse();
+
+    await createProviderBillingHandler({ sources: { openai } })(createRequest(query), response);
+
+    expect(json.mock.calls[0][0].providers[0]).toMatchObject({
+      provider: 'openai',
+      configured: true,
+      error: 'needs_admin_key',
+    });
+  });
+
   it('rejects an invalid window without calling providers', async () => {
     const openai: BillingSource = { provider: 'openai', fetchCosts: jest.fn() };
     const { response, status } = createResponse();
