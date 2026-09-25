@@ -13,6 +13,7 @@ import { useDocumentTitle, useLocalize } from '~/hooks';
 import { useUsageQuery } from '~/data-provider';
 import { downloadCsv, usageCsv } from './csv';
 import Billing from './Billing';
+import Prices from './Prices';
 import { cn } from '~/utils';
 
 type Preset = 'month' | '7d' | '30d' | '90d';
@@ -65,6 +66,10 @@ export default function UsageView() {
   );
   const usage = useUsageQuery(params);
   const data = usage.data;
+  const usedModels = useMemo(
+    () => (data?.models ?? []).map((row) => row.model).filter(Boolean),
+    [data],
+  );
   const status = responseStatus(usage.error);
 
   useDocumentTitle(`${localize('com_usage_title')} | LibreChat`);
@@ -202,6 +207,7 @@ export default function UsageView() {
               )}
             </>
           )}
+          {data && <Prices models={usedModels} locale={locale} localize={localize} />}
           {data && <Billing params={params} locale={locale} localize={localize} />}
         </div>
       </main>

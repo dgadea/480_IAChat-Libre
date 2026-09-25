@@ -15,10 +15,13 @@
  * 2. **Same-length tie-breaking**: when two keys of equal length both match,
  *    the last-defined key wins.
  */
+import type { TModelRates } from 'librechat-data-provider';
 
 export interface TxDeps {
   /** From @librechat/api — matches a model name to a canonical key. */
   matchModelName: (model: string, endpoint?: string) => string | undefined;
+  /** An admin's rates for an exact model name; they win over every table and endpoint config */
+  getPriceOverride?: (model: string) => TModelRates | undefined;
   /** From @librechat/api — finds the longest key in `values` whose key is a substring of `model`. */
   findMatchingPattern: (
     model: string,
@@ -542,7 +545,7 @@ export function createTxMethods(
     }
   >;
 } {
-  const { matchModelName, findMatchingPattern } = txDeps;
+  const { matchModelName, findMatchingPattern, getPriceOverride } = txDeps;
 
   /**
    * Retrieves the key associated with a given model name.
@@ -584,6 +587,25 @@ export function createTxMethods(
   }
 
   /**
+   * The admin's rates for this call. A caller that names a different value key
+   * on purpose — Omni's text output priced apart from its video — keeps that
+   * rate rather than the model's edited one.
+   */
+  function priceOverride(
+    model?: string,
+    valueKey?: string,
+    endpoint?: string,
+  ): TModelRates | undefined {
+    if (!model || !getPriceOverride) {
+      return undefined;
+    }
+    if (valueKey && valueKey !== getValueKey(model, endpoint)) {
+      return undefined;
+    }
+    return getPriceOverride(model);
+  }
+
+  /**
    * Checks if premium (tiered) pricing applies and returns the premium rate.
    */
   function getPremiumRate(
@@ -619,6 +641,11 @@ export function createTxMethods(
     inputTokenCount?: number;
     endpointTokenConfig?: Record<string, Record<string, number>>;
   }): number {
+    const override = tokenType ? priceOverride(model, valueKey, endpoint) : undefined;
+    if (override && tokenType) {
+      return override[tokenType];
+    }
+
     if (endpointTokenConfig && model) {
       const modelConfig = endpointTokenConfig[model];
       /** A partial override only prices the models it lists; others fall
@@ -692,6 +719,13 @@ export function createTxMethods(
     endpointTokenConfig?: Record<string, Record<string, number>>;
     inputTokenCount?: number | null;
   }): number | null {
+    /** An edit that leaves a cache rate blank keeps the table's cache rate */
+    const override = cacheType ? priceOverride(model, valueKey, endpoint) : undefined;
+    const overrideRate = cacheType === 'write' ? override?.cacheWrite : override?.cacheRead;
+    if (overrideRate != null) {
+      return overrideRate;
+    }
+
     if (endpointTokenConfig && model) {
       const modelConfig = endpointTokenConfig[model];
       /** Models absent from a partial override fall through to standard

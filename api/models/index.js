@@ -15,6 +15,7 @@ const seedDatabase = async () => {
   await methods.seedDefaultRoles();
   await methods.ensureDefaultCategories();
   await methods.seedSystemGrants();
+  await methods.refreshModelPrices();
 };
 
 module.exports = {

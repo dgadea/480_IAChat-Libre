@@ -15,6 +15,7 @@ import { createAgentApiKeyModel } from './agentApiKey';
 import { createTransactionModel } from './transaction';
 import { createPromptGroupModel } from './promptGroup';
 import { createSystemGrantModel } from './systemGrant';
+import { createModelPriceModel } from './modelPrice';
 import { createPluginAuthModel } from './pluginAuth';
 import { createSharedLinkModel } from './sharedLink';
 import { createAccessRoleModel } from './accessRole';
@@ -69,6 +70,7 @@ export function createModels(mongoose: typeof import('mongoose')): {
   Key: ReturnType<typeof createKeyModel>;
   PluginAuth: ReturnType<typeof createPluginAuthModel>;
   Transaction: ReturnType<typeof createTransactionModel>;
+  ModelPrice: ReturnType<typeof createModelPriceModel>;
   Preset: ReturnType<typeof createPresetModel>;
   Prompt: ReturnType<typeof createPromptModel>;
   PromptGroup: ReturnType<typeof createPromptGroupModel>;
@@ -118,6 +120,7 @@ export function createModels(mongoose: typeof import('mongoose')): {
     Key: createKeyModel(mongoose),
     PluginAuth: createPluginAuthModel(mongoose),
     Transaction: createTransactionModel(mongoose),
+    ModelPrice: createModelPriceModel(mongoose),
     Preset: createPresetModel(mongoose),
     Prompt: createPromptModel(mongoose),
     PromptGroup: createPromptGroupModel(mongoose),

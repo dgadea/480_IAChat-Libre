@@ -182,6 +182,7 @@ import {
 import { createInsightsMethods, type InsightsMethods } from './insights';
 /* Usage */
 import { createUsageMethods, type UsageMethods } from './usage';
+import { createModelPriceMethods, type ModelPriceMethods } from './modelPrice';
 
 export {
   runAfterTransaction,
@@ -265,7 +266,8 @@ export type AllMethods = UserMethods &
   ConfigMethods &
   MCPAuthorityMethods &
   InsightsMethods &
-  UsageMethods;
+  UsageMethods &
+  ModelPriceMethods;
 
 /** Dependencies injected from the api layer into createMethods */
 export interface CreateMethodsDeps {
@@ -294,9 +296,11 @@ export function createMethods(
   deps: CreateMethodsDeps = {},
 ): AllMethods {
   // Tier 3: tx methods need matchModelName and findMatchingPattern
+  const modelPriceMethods = createModelPriceMethods(mongoose);
   const txDeps: TxDeps = {
     matchModelName: deps.matchModelName ?? (() => undefined),
     findMatchingPattern: deps.findMatchingPattern ?? (() => undefined),
+    getPriceOverride: modelPriceMethods.getModelPriceOverride,
   };
   const txMethods = createTxMethods(mongoose, txDeps);
 
@@ -480,6 +484,7 @@ export function createMethods(
     ...createChatProjectMethods(mongoose),
     /* Tier 3 */
     ...txMethods,
+    ...modelPriceMethods,
     ...transactionMethods,
     ...spendTokensMethods,
     ...promptMethods,
@@ -579,6 +584,7 @@ export type {
   MCPAuthorityCredentialSourceDocument,
   InsightsMethods,
   UsageMethods,
+  ModelPriceMethods,
 };
 
 export { recordAgentEventActorReceiptMetric, setAgentEventActorReceiptMetricObserver };

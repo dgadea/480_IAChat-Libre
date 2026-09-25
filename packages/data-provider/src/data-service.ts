@@ -6,8 +6,14 @@ import type {
   TTraceRecordParams,
   TTraceRecordDetail,
 } from './types/traces';
+import type {
+  TModelPrice,
+  TUsageParams,
+  TUsageResponse,
+  TModelPricesResponse,
+  TProviderBillingResponse,
+} from './types/usage';
 import type { TInsightsAccessResponse, TInsightsParams, TInsightsResponse } from './types/insights';
-import type { TProviderBillingResponse, TUsageParams, TUsageResponse } from './types/usage';
 import type { TFileConfig } from './file-config';
 import type * as tl from './types/tools';
 import type * as t from './types';
@@ -51,6 +57,20 @@ export function getUsage(params: TUsageParams): Promise<TUsageResponse> {
 
 export function getUsageProviders(params: TUsageParams): Promise<TProviderBillingResponse> {
   return request.get(`${endpoints.usageProviders()}?${new URLSearchParams(params).toString()}`);
+}
+
+export function getModelPrices(models: string[]): Promise<TModelPricesResponse> {
+  const query = new URLSearchParams();
+  models.forEach((model) => query.append('models', model));
+  return request.get(`${endpoints.usagePrices()}?${query.toString()}`);
+}
+
+export function saveModelPrice(price: TModelPrice): Promise<TModelPricesResponse> {
+  return request.put(endpoints.usagePrices(), price);
+}
+
+export function resetModelPrice(model: string): Promise<TModelPricesResponse> {
+  return request.delete(`${endpoints.usagePrices()}?${new URLSearchParams({ model }).toString()}`);
 }
 
 export function getConversationTraceAvailability(

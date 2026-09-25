@@ -1,8 +1,10 @@
-import { useQuery } from '@tanstack/react-query';
-import { QueryKeys, dataService } from 'librechat-data-provider';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { QueryKeys, dataService, MutationKeys } from 'librechat-data-provider';
 import type {
+  TModelPrice,
   TUsageParams,
   TUsageResponse,
+  TModelPricesResponse,
   TProviderBillingResponse,
 } from 'librechat-data-provider';
 import type { QueryObserverResult, UseQueryOptions } from '@tanstack/react-query';
@@ -34,3 +36,36 @@ export const useUsageProvidersQuery = (
       ...config,
     },
   );
+
+export const useModelPricesQuery = (
+  models: string[],
+  config?: UseQueryOptions<TModelPricesResponse>,
+): QueryObserverResult<TModelPricesResponse> =>
+  useQuery<TModelPricesResponse>(
+    [QueryKeys.usagePrices, models],
+    () => dataService.getModelPrices(models),
+    {
+      keepPreviousData: true,
+      refetchOnWindowFocus: false,
+      retry: false,
+      ...config,
+    },
+  );
+
+/** Every listing includes the edited models, so each one is refetched after a change */
+function usePriceMutation<TVariables>(
+  mutationKey: MutationKeys,
+  mutate: (variables: TVariables) => Promise<TModelPricesResponse>,
+) {
+  const queryClient = useQueryClient();
+  return useMutation<TModelPricesResponse, unknown, TVariables>(mutate, {
+    mutationKey: [mutationKey],
+    onSuccess: () => queryClient.invalidateQueries([QueryKeys.usagePrices]),
+  });
+}
+
+export const useSaveModelPriceMutation = () =>
+  usePriceMutation<TModelPrice>(MutationKeys.saveModelPrice, dataService.saveModelPrice);
+
+export const useResetModelPriceMutation = () =>
+  usePriceMutation<string>(MutationKeys.resetModelPrice, dataService.resetModelPrice);

@@ -80,6 +80,9 @@ const mockUseUsageQuery = jest.fn((_params: TUsageParams): QueryState => loaded)
 jest.mock('~/data-provider', () => ({
   useUsageQuery: (params: TUsageParams) => mockUseUsageQuery(params),
   useUsageProvidersQuery: () => ({ isLoading: true, isFetching: true, isError: false }),
+  useModelPricesQuery: () => ({ isLoading: true, isError: false }),
+  useSaveModelPriceMutation: () => ({ mutate: jest.fn(), reset: jest.fn() }),
+  useResetModelPriceMutation: () => ({ mutate: jest.fn() }),
 }));
 
 jest.mock('~/hooks', () => ({

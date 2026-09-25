@@ -471,6 +471,7 @@ export const insightsAccess = () => `${insights()}/access`;
 
 export const usage = () => `${BASE_URL}/api/usage`;
 export const usageProviders = () => `${usage()}/providers`;
+export const usagePrices = () => `${usage()}/prices`;
 
 /* Conversation traces */
 export const conversationTrace = (conversationId: string) =>

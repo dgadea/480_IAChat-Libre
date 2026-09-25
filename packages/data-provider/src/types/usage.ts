@@ -71,3 +71,38 @@ export type TProviderBillingResponse = {
   to: string;
   providers: TProviderBilling[];
 };
+
+/** Highest rate an admin can set, in USD per million tokens; guards against a typo in cents */
+export const MODEL_PRICE_MAX_RATE = 100_000;
+export const MODEL_PRICE_MODEL_MAX_LENGTH = 256;
+
+/** USD per million tokens */
+export type TModelRates = {
+  prompt: number;
+  completion: number;
+  cacheWrite?: number;
+  cacheRead?: number;
+};
+
+export type TModelPrice = TModelRates & {
+  /** Exact model name as calls record it */
+  model: string;
+};
+
+/** Where a model's rate comes from: an admin's edit, the built-in tables, or the fallback rate */
+export type TModelPriceSource = 'override' | 'table' | 'default';
+
+export type TModelPriceRow = {
+  model: string;
+  source: TModelPriceSource;
+  /** The rates new calls are priced at */
+  rates: TModelRates;
+  /** What the built-in tables would charge without the admin's edit */
+  base: TModelRates;
+  /** The built-in table entry the model matched, when it matched one */
+  baseKey?: string;
+};
+
+export type TModelPricesResponse = {
+  prices: TModelPriceRow[];
+};

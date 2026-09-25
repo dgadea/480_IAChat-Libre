@@ -29,6 +29,7 @@ export enum QueryKeys {
   insightsAccess = 'insightsAccess',
   usage = 'usage',
   usageProviders = 'usageProviders',
+  usagePrices = 'usagePrices',
   assistants = 'assistants',
   assistant = 'assistant',
   agents = 'agents',
@@ -113,6 +114,8 @@ export const DynamicQueryKeys = {
 } as const;
 
 export enum MutationKeys {
+  saveModelPrice = 'saveModelPrice',
+  resetModelPrice = 'resetModelPrice',
   subagentControl = 'subagentControl',
   enqueueAgentQueuedTurn = 'enqueueAgentQueuedTurn',
   cancelAgentQueuedTurn = 'cancelAgentQueuedTurn',
