@@ -1,7 +1,12 @@
 import { logger } from '@librechat/data-schemas';
 import { DEFAULT_VIDEO_MAX_FILE_SIZE_MB } from 'librechat-data-provider';
 import type { TVideoGenerationConfig, AgentToolOptions } from 'librechat-data-provider';
-import type { VideoAdapter, VideoAdapterCapabilities, VideoGenerationRequest } from './types';
+import type {
+  VideoUsage,
+  VideoAdapter,
+  VideoGenerationRequest,
+  VideoAdapterCapabilities,
+} from './types';
 import {
   createVideoAdapter,
   mergeCapabilities,
@@ -29,6 +34,7 @@ export interface VideoGenerationOutcome {
   buffer: Buffer;
   mimeType: string;
   previousId?: string;
+  usage?: VideoUsage;
 }
 
 /**
@@ -145,7 +151,12 @@ export async function generateVideo({
   const result = await prepared.adapter.generate({ ...request, model: prepared.model });
 
   if (result.buffer) {
-    return { buffer: result.buffer, mimeType: result.mimeType, previousId: result.previousId };
+    return {
+      buffer: result.buffer,
+      mimeType: result.mimeType,
+      previousId: result.previousId,
+      usage: result.usage,
+    };
   }
 
   if (!result.url) {
@@ -167,5 +178,6 @@ export async function generateVideo({
     buffer: downloaded.buffer,
     mimeType: downloaded.mimeType || result.mimeType,
     previousId: result.previousId,
+    usage: result.usage,
   };
 }

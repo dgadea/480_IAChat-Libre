@@ -222,6 +222,8 @@ export const tokenValues: Record<string, { prompt: number; completion: number }>
     'gemini-3-pro-image': { prompt: 2, completion: 120 },
     'gemini-3.1': { prompt: 2, completion: 12 },
     'gemini-3.1-flash-lite': { prompt: 0.25, completion: 1.5 },
+    /** Nano Banana 2 Lite: image output bills at the image rate, not the text one */
+    'gemini-3.1-flash-lite-image': { prompt: 0.25, completion: 30 },
     'gemini-3.5-flash': { prompt: 1.5, completion: 9 },
     'gemini-3.5-flash-lite': { prompt: 0.3, completion: 2.5 },
     // Gemini 3.6/3.7/3.8 Flash introductory pricing through 2026-12-31; revert to { prompt: 1.5, completion: 7.5 } after.
@@ -229,6 +231,10 @@ export const tokenValues: Record<string, { prompt: number; completion: number }>
     'gemini-3.7-flash': { prompt: 0.75, completion: 3.75 },
     'gemini-3.8-flash': { prompt: 0.75, completion: 3.75 },
     'gemini-pro-vision': { prompt: 0.5, completion: 1.5 },
+    /** Gemini Omni: completion is the video rate; its text and thought output
+     *  bills lower and is recorded under `gemini-omni-text` */
+    'gemini-omni': { prompt: 1.5, completion: 17.5 },
+    'gemini-omni-text': { prompt: 1.5, completion: 9 },
     grok: { prompt: 2.0, completion: 10.0 },
     'grok-beta': { prompt: 5.0, completion: 15.0 },
     'grok-vision-beta': { prompt: 5.0, completion: 15.0 },

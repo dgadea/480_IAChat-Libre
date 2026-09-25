@@ -5,11 +5,15 @@ const { ContentTypes } = require('librechat-data-provider');
 const {
   omniToolkit,
   generateVideo,
+  recordVideoUsage,
+  getBalanceConfig,
   buildVideoGenSchema,
   applyVideoDirection,
+  getTransactionsConfig,
   prepareVideoGeneration,
 } = require('@librechat/api');
 const { convertImagesToInlineData } = require('./GeminiImageGen');
+const { spendTokens } = require('~/models');
 
 const TOOL_ID = 'gemini_video_gen';
 
@@ -29,7 +33,7 @@ function createGeminiVideoTool(fields = {}) {
     throw new Error('This tool is only available for agents.');
   }
 
-  const { req, imageFiles = [], fileStrategy, GEMINI_API_KEY, GOOGLE_KEY } = fields;
+  const { req, imageFiles = [], userId, fileStrategy, GEMINI_API_KEY, GOOGLE_KEY } = fields;
   /** Resolved by the caller from the composer's controls and the agent's own
    *  settings. Set deliberately by the user, so they win over the model's
    *  arguments rather than merely filling in for a missing one. */
@@ -139,6 +143,21 @@ function createGeminiVideoTool(fields = {}) {
         logger.error('[GeminiVideoGen] Generation failed:', error);
         return textOnly(`Video generation failed: ${error.message}`);
       }
+
+      recordVideoUsage({
+        usage: outcome.usage,
+        spendTokens,
+        txData: {
+          user: userId ?? req?.user?.id,
+          model: prepared.model,
+          conversationId: runnableConfig?.configurable?.thread_id,
+          messageId:
+            runnableConfig?.configurable?.run_id ??
+            runnableConfig?.configurable?.requestBody?.messageId,
+          balance: getBalanceConfig(req?.config),
+          transactions: getTransactionsConfig(req?.config),
+        },
+      });
 
       /** Handed over as a data URL: the agent artifact pipeline is what stores
        *  generated media and emits the attachment (`callbacks.js`), and a tool

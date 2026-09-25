@@ -3152,5 +3152,38 @@ describe('vendor-prefixed pricing keys', () => {
   });
 });
 
+describe('Gemini media generation pricing', () => {
+  it('prices Gemini Omni video output under the Omni key', () => {
+    const model = 'gemini-omni-1.1-flash';
+    expect(getValueKey(model)).toBe('gemini-omni');
+    expect(getMultiplier({ model, tokenType: 'prompt' })).toBe(tokenValues['gemini-omni'].prompt);
+    expect(getMultiplier({ model, tokenType: 'completion' })).toBe(
+      tokenValues['gemini-omni'].completion,
+    );
+  });
+
+  it('prices Omni text and thought output at the lower text rate through its value key', () => {
+    expect(
+      getMultiplier({
+        model: 'gemini-omni-1.1-flash',
+        valueKey: 'gemini-omni-text',
+        tokenType: 'completion',
+      }),
+    ).toBe(tokenValues['gemini-omni-text'].completion);
+    expect(tokenValues['gemini-omni-text'].completion).toBeLessThan(
+      tokenValues['gemini-omni'].completion,
+    );
+  });
+
+  it('prices Nano Banana 2 Lite image output at the image rate, not the text model', () => {
+    const model = 'gemini-3.1-flash-lite-image';
+    expect(getValueKey(model)).toBe(model);
+    expect(getMultiplier({ model, tokenType: 'completion' })).toBe(tokenValues[model].completion);
+    expect(tokenValues[model].completion).toBeGreaterThan(
+      tokenValues['gemini-3.1-flash-lite'].completion,
+    );
+  });
+});
+
 // Cross-package sync validation tests (tokens.ts ↔ tx.ts) moved to
 // packages/api tests since they require maxTokensMap from @librechat/api.

@@ -4,3 +4,4 @@ export * from './registry';
 export * from './generate';
 export * from './direction';
 export * from './context';
+export * from './usage';

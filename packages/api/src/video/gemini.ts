@@ -1,5 +1,6 @@
 import { logger } from '@librechat/data-schemas';
 import type {
+  VideoUsage,
   VideoAdapter,
   ResolvedVideoProvider,
   VideoGenerationRequest,
@@ -30,11 +31,56 @@ interface InteractionStep {
   content?: InteractionPart[];
 }
 
+interface ModalityTokens {
+  modality?: string;
+  tokens?: number;
+}
+
+interface InteractionUsage {
+  total_input_tokens?: number;
+  total_output_tokens?: number;
+  total_thought_tokens?: number;
+  output_tokens_by_modality?: ModalityTokens[];
+}
+
 interface InteractionResponse {
   id?: string;
   status?: string;
   steps?: InteractionStep[];
+  usage?: InteractionUsage;
   error?: { message?: string };
+}
+
+/** Omni bills video output and text/thought output at different rates; the
+ *  text rate lives in the token tables under this key */
+export const GEMINI_TEXT_OUTPUT_VALUE_KEY = 'gemini-omni-text';
+
+/**
+ * Splits an interaction's usage into the video, billed at the model's own
+ * completion rate, and everything else it wrote — text and thoughts — billed at
+ * the lower text rate. Without a modality breakdown all output counts as video,
+ * the rate that dominates a generation.
+ */
+export function readGeminiUsage(usage?: InteractionUsage): VideoUsage | undefined {
+  if (!usage) {
+    return undefined;
+  }
+  const output = usage.total_output_tokens ?? 0;
+  const byModality = usage.output_tokens_by_modality;
+  const video = byModality
+    ? byModality.reduce(
+        (sum, entry) => sum + (entry.modality === 'video' ? (entry.tokens ?? 0) : 0),
+        0,
+      )
+    : output;
+  const text = Math.max(output - video, 0) + (usage.total_thought_tokens ?? 0);
+  return {
+    inputTokens: usage.total_input_tokens ?? 0,
+    outputTokens: video,
+    ...(text > 0
+      ? { otherOutputs: [{ tokens: text, valueKey: GEMINI_TEXT_OUTPUT_VALUE_KEY }] }
+      : {}),
+  };
 }
 
 /**
@@ -123,6 +169,7 @@ export function createGeminiVideoAdapter(provider: ResolvedVideoProvider): Video
         buffer: Buffer.from(video.data, 'base64'),
         mimeType: video.mime_type || 'video/mp4',
         previousId: interaction.id,
+        usage: readGeminiUsage(interaction.usage),
       };
     },
   };

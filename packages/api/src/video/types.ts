@@ -27,6 +27,19 @@ export interface VideoGenerationRequest {
 }
 
 /**
+ * Tokens one generation billed. Providers that bill by token report them so the
+ * spend lands in transactions like any model call; a provider that does not
+ * leaves `usage` unset and the generation is not priced.
+ */
+export interface VideoUsage {
+  inputTokens: number;
+  /** Output priced at the model's own completion rate — the video itself */
+  outputTokens: number;
+  /** Output the provider bills at another rate (text, thoughts), priced under that value key */
+  otherOutputs?: Array<{ tokens: number; valueKey: string }>;
+}
+
+/**
  * A finished video. Providers return bytes or a location, never both — the
  * caller persists whichever arrives, so a URL-returning provider needs no
  * special path through the tool.
@@ -37,6 +50,7 @@ export interface VideoGenerationResult {
   mimeType: string;
   /** Handle the next turn passes back as `previousId` to edit this video. */
   previousId?: string;
+  usage?: VideoUsage;
 }
 
 /**
