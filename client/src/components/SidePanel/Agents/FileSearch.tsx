@@ -1,4 +1,4 @@
-import { memo, useMemo, useRef, useState } from 'react';
+import { memo, useMemo, useRef, useState, useCallback } from 'react';
 import { Folder } from 'lucide-react';
 import * as Ariakit from '@ariakit/react';
 import { useFormContext } from 'react-hook-form';
@@ -6,14 +6,15 @@ import { SharePointIcon, DropdownPopup } from '@librechat/client';
 import { EModelEndpoint, EToolResources, AgentCapabilities } from 'librechat-data-provider';
 import type { ExtendedFile, AgentForm } from '~/common';
 import { useSharePointFileHandlingNoChatContext } from '~/hooks/Files/useSharePointFileHandling';
+import DropzoneContent, { dropzoneClassName, dropzoneActiveClassName } from './UploadDropzone';
+import { useAgentFileConfig, useLocalize, useLazyEffect, useFileDrop } from '~/hooks';
 import FileRow, { FileRowWrapper } from '~/components/Chat/Input/Files/FileRow';
 import { useFileHandlingNoChatContext } from '~/hooks/Files/useFileHandling';
-import { useAgentFileConfig, useLocalize, useLazyEffect } from '~/hooks';
-import DropzoneContent, { dropzoneClassName } from './UploadDropzone';
 import { SharePointPickerDialog } from '~/components/SharePoint';
 import { useGetStartupConfig } from '~/data-provider';
 import SectionHeader from './SectionHeader';
 import { isEphemeralAgent } from '~/common';
+import { cn } from '~/utils';
 
 function FileSearch({
   agent_id,
@@ -37,7 +38,7 @@ function FileSearch({
   const { endpointFileConfig, providerValue, endpointType } = useAgentFileConfig();
   const endpointOverride = providerValue || EModelEndpoint.agents;
 
-  const { handleFileChange } = useFileHandlingNoChatContext(
+  const { handleFileChange, handleFiles } = useFileHandlingNoChatContext(
     {
       additionalMetadata: { agent_id, tool_resource: EToolResources.file_search },
       endpointOverride,
@@ -72,8 +73,10 @@ function FileSearch({
   const sharePointEnabled = startupConfig?.sharePointFilePickerEnabled;
   const disabledUploadButton = isEphemeralAgent(agent_id);
 
-  const enableFileSearch = () =>
-    setValue(AgentCapabilities.file_search, true, { shouldDirty: true });
+  const enableFileSearch = useCallback(
+    () => setValue(AgentCapabilities.file_search, true, { shouldDirty: true }),
+    [setValue],
+  );
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files && event.target.files.length > 0) {
@@ -81,6 +84,20 @@ function FileSearch({
     }
     handleFileChange(event);
   };
+
+  const handleDroppedFiles = useCallback(
+    (droppedFiles: File[]) => {
+      enableFileSearch();
+      handleFiles(droppedFiles);
+    },
+    [handleFiles, enableFileSearch],
+  );
+
+  const { isOver, canDrop, drop } = useFileDrop({
+    onDrop: handleDroppedFiles,
+    disabled: disabledUploadButton,
+  });
+  const isDropActive = canDrop && isOver;
 
   const handleSharePointFilesSelected = async (sharePointFiles: any[]) => {
     try {
@@ -118,11 +135,14 @@ function FileSearch({
     },
   ];
 
-  const dropzoneLabel = localize('com_ui_upload_file_search');
-  const dropzoneHint = localize('com_ui_upload_files_hint');
+  const dropzoneLabel = isDropActive
+    ? localize('com_ui_drop_files_here')
+    : localize('com_ui_upload_file_search');
+  const dropzoneHint = isDropActive ? undefined : localize('com_ui_upload_files_hint');
+  const triggerClassName = cn(dropzoneClassName, isDropActive && dropzoneActiveClassName);
 
   const menuTrigger = (
-    <Ariakit.MenuButton disabled={disabledUploadButton} className={dropzoneClassName}>
+    <Ariakit.MenuButton disabled={disabledUploadButton} className={triggerClassName}>
       <DropzoneContent label={dropzoneLabel} hint={dropzoneHint} />
     </Ariakit.MenuButton>
   );
@@ -144,7 +164,7 @@ function FileSearch({
           tool_resource={EToolResources.file_search}
           Wrapper={FileRowWrapper}
         />
-        <div>
+        <div ref={drop}>
           {sharePointEnabled ? (
             <DropdownPopup
               gutter={2}
@@ -160,7 +180,7 @@ function FileSearch({
             <button
               type="button"
               disabled={disabledUploadButton}
-              className={dropzoneClassName}
+              className={triggerClassName}
               onClick={handleLocalFileClick}
             >
               <DropzoneContent label={dropzoneLabel} hint={dropzoneHint} />

@@ -1,8 +1,14 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react';
 import { useForm, FormProvider } from 'react-hook-form';
-import { EModelEndpoint, mergeFileConfig } from 'librechat-data-provider';
+import { act, render, screen } from '@testing-library/react';
+import {
+  Constants,
+  EModelEndpoint,
+  mergeFileConfig,
+  AgentCapabilities,
+} from 'librechat-data-provider';
 import type { TEndpointsConfig } from 'librechat-data-provider';
+import type { UseFormReturn } from 'react-hook-form';
 import type { AgentForm } from '~/common';
 import FileSearch from '../FileSearch';
 
@@ -21,14 +27,22 @@ jest.mock('~/data-provider', () => ({
   useGetStartupConfig: () => ({ data: { sharePointFilePickerEnabled: false } }),
 }));
 
+const mockUseFileDrop = jest.fn();
+
 jest.mock('~/hooks', () => ({
   useAgentFileConfig: jest.requireActual('~/hooks/Agents/useAgentFileConfig').default,
   useLocalize: () => (key: string) => key,
   useLazyEffect: () => {},
+  useFileDrop: (...args: unknown[]) => {
+    mockUseFileDrop(...args);
+    return { isOver: false, canDrop: false, drop: jest.fn() };
+  },
 }));
 
+const mockHandleFiles = jest.fn();
 const mockUseFileHandlingNoChatContext = jest.fn().mockReturnValue({
   handleFileChange: jest.fn(),
+  handleFiles: mockHandleFiles,
 });
 
 jest.mock('~/hooks/Files/useFileHandling', () => ({
@@ -65,10 +79,22 @@ jest.mock('@librechat/client', () => ({
   HoverCardTrigger: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
 }));
 
-function Wrapper({ provider, children }: { provider?: string; children: React.ReactNode }) {
+function Wrapper({
+  provider,
+  children,
+  onReady,
+}: {
+  provider?: string;
+  children: React.ReactNode;
+  onReady?: (methods: UseFormReturn<AgentForm>) => void;
+}) {
   const methods = useForm<AgentForm>({
     defaultValues: { provider: provider as AgentForm['provider'] },
   });
+  /** `formState` is a Proxy that only tracks what a render reads, so subscribe here
+   *  for the dirty assertion below to observe anything. */
+  void methods.formState.dirtyFields;
+  onReady?.(methods);
   return <FormProvider {...methods}>{children}</FormProvider>;
 }
 
@@ -81,6 +107,37 @@ describe('FileSearch', () => {
       </Wrapper>,
     );
     expect(screen.getByText('com_assistants_file_search')).toBeInTheDocument();
+  });
+
+  it('uploads dropped files and marks the file_search capability dirty', () => {
+    mockFileConfig = mergeFileConfig({ endpoints: { default: { fileLimit: 10 } } });
+    mockHandleFiles.mockClear();
+    mockUseFileDrop.mockClear();
+    let form: UseFormReturn<AgentForm> | undefined;
+    render(
+      <Wrapper provider="Moonshot" onReady={(methods) => (form = methods)}>
+        <FileSearch agent_id="agent-1" />
+      </Wrapper>,
+    );
+
+    const { onDrop } = mockUseFileDrop.mock.calls[0][0] as { onDrop: (files: File[]) => void };
+    const dropped = [new File(['brand'], 'brand-book.pdf', { type: 'application/pdf' })];
+    act(() => onDrop(dropped));
+
+    expect(mockHandleFiles).toHaveBeenCalledWith(dropped);
+    expect(form?.getValues(AgentCapabilities.file_search)).toBe(true);
+    expect(form?.formState.dirtyFields[AgentCapabilities.file_search]).toBe(true);
+  });
+
+  it('disables the drop target for an ephemeral agent', () => {
+    mockFileConfig = mergeFileConfig({ endpoints: { default: { fileLimit: 10 } } });
+    mockUseFileDrop.mockClear();
+    render(
+      <Wrapper provider="Moonshot">
+        <FileSearch agent_id={`${Constants.EPHEMERAL_AGENT_ID}`} />
+      </Wrapper>,
+    );
+    expect(mockUseFileDrop.mock.calls[0][0]).toEqual(expect.objectContaining({ disabled: true }));
   });
 
   it('returns null when file config is disabled for provider', () => {

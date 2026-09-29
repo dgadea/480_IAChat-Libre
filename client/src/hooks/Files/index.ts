@@ -6,6 +6,7 @@ export { default as useFileDeletion } from './useFileDeletion';
 export { default as useClientResize } from './useClientResize';
 export { default as useUpdateFiles } from './useUpdateFiles';
 export { default as useDragHelpers } from './useDragHelpers';
+export { default as useFileDrop } from './useFileDrop';
 export { default as useUploadOptions } from './useUploadOptions';
 export { default as useFileUploadRouter } from './useFileUploadRouter';
 export { default as usePastedTextEdit } from './usePastedTextEdit';
