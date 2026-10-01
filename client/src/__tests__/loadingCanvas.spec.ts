@@ -67,10 +67,10 @@ describe('loading canvas', () => {
   });
 
   /** An unset or unrecognised value is what `getInitialTheme` resolves as
-   *  `system`, so the canvas has to resolve it the same way. */
-  it('treats an unset or unknown mode as system', () => {
-    expect(canvasFor(null, [DARK_SCHEME])).toBe('#0d0d0d');
-    expect(canvasFor(null, [DARK_SCHEME, MORE_CONTRAST])).toBe('#000000');
-    expect(canvasFor('sepia', [DARK_SCHEME, MORE_CONTRAST])).toBe('#000000');
+   *  `light`, so the canvas has to resolve it the same way. */
+  it('treats an unset or unknown mode as light', () => {
+    expect(canvasFor(null, [DARK_SCHEME])).toBe('#ffffff');
+    expect(canvasFor(null, [DARK_SCHEME, MORE_CONTRAST])).toBe('#ffffff');
+    expect(canvasFor('sepia', [DARK_SCHEME, MORE_CONTRAST])).toBe('#ffffff');
   });
 });
