@@ -23,6 +23,23 @@ fileConfig:
     baseMs: 20000
     perMbMs: 4000
 
+  # El tope describe el LOTE, no el agente: `useFileHandling` lo aplica a lo que
+  # sobrevive al particionado de cada tanda, así que con 10 igual se podía llegar
+  # a cualquier cantidad de archivos repitiendo la subida. Lo que cambia es
+  # cuántos entran de una. Diez quedaba corto para cargar la base de conocimiento
+  # de un cliente — un brand book partido por tema más el histórico de campañas
+  # pasa holgadamente de diez — y obligaba a subir en tandas sin ninguna razón.
+  #
+  # El mismo valor limita cuántos se pueden marcar en el picker de SharePoint
+  # (`maxSelectionCount={endpointFileConfig?.fileLimit}`), así que sube en las dos
+  # entradas a la vez.
+  #
+  # `fileSizeLimit` y `totalSizeLimit` siguen en su default de 512 MB, que cubre
+  # un lote de cincuenta documentos sin tocarlos.
+  endpoints:
+    agents:
+      fileLimit: 50
+
 # Cuando una herramienta MCP (Higgsfield, por ejemplo) devuelve un enlace a una
 # imagen o un video en vez del archivo, se descarga a R2 y se adjunta al chat:
 # se ve en línea y sigue ahí aunque el proveedor borre su copia. Si el resultado
