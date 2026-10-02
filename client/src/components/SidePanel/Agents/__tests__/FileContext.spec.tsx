@@ -1,7 +1,7 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react';
 import { useForm, FormProvider } from 'react-hook-form';
-import { EModelEndpoint, mergeFileConfig } from 'librechat-data-provider';
+import { act, render, screen } from '@testing-library/react';
+import { Constants, EModelEndpoint, mergeFileConfig } from 'librechat-data-provider';
 import type { TEndpointsConfig } from 'librechat-data-provider';
 import type { AgentForm } from '~/common';
 import FileContext from '../FileContext';
@@ -21,14 +21,22 @@ jest.mock('~/data-provider', () => ({
   useGetStartupConfig: () => ({ data: { sharePointFilePickerEnabled: false } }),
 }));
 
+const mockUseFileDrop = jest.fn();
+
 jest.mock('~/hooks', () => ({
   useAgentFileConfig: jest.requireActual('~/hooks/Agents/useAgentFileConfig').default,
   useLocalize: () => (key: string) => key,
   useLazyEffect: () => {},
+  useFileDrop: (...args: unknown[]) => {
+    mockUseFileDrop(...args);
+    return { isOver: false, canDrop: false, drop: jest.fn() };
+  },
 }));
 
+const mockHandleFiles = jest.fn();
 const mockUseFileHandlingNoChatContext = jest.fn().mockReturnValue({
   handleFileChange: jest.fn(),
+  handleFiles: mockHandleFiles,
 });
 
 jest.mock('~/hooks/Files/useFileHandling', () => ({
@@ -90,6 +98,34 @@ describe('FileContext', () => {
       </Wrapper>,
     );
     expect(screen.getByText('com_agents_file_context_label')).toBeInTheDocument();
+  });
+
+  it('uploads dropped files to the context resource', () => {
+    mockFileConfig = mergeFileConfig({ endpoints: { default: { fileLimit: 10 } } });
+    mockHandleFiles.mockClear();
+    mockUseFileDrop.mockClear();
+    render(
+      <Wrapper provider="Moonshot">
+        <FileContext agent_id="agent-1" />
+      </Wrapper>,
+    );
+
+    const { onDrop } = mockUseFileDrop.mock.calls[0][0] as { onDrop: (files: File[]) => void };
+    const dropped = [new File(['brief'], 'brief.pdf', { type: 'application/pdf' })];
+    act(() => onDrop(dropped));
+
+    expect(mockHandleFiles).toHaveBeenCalledWith(dropped);
+  });
+
+  it('disables the drop target for an ephemeral agent', () => {
+    mockFileConfig = mergeFileConfig({ endpoints: { default: { fileLimit: 10 } } });
+    mockUseFileDrop.mockClear();
+    render(
+      <Wrapper provider="Moonshot">
+        <FileContext agent_id={`${Constants.EPHEMERAL_AGENT_ID}`} />
+      </Wrapper>,
+    );
+    expect(mockUseFileDrop.mock.calls[0][0]).toEqual(expect.objectContaining({ disabled: true }));
   });
 
   it('returns null when file config is disabled', () => {

@@ -1,12 +1,12 @@
-import { memo, useMemo, useRef, useState } from 'react';
+import { memo, useMemo, useRef, useState, useCallback } from 'react';
 import * as Ariakit from '@ariakit/react';
 import { Folder, Plus, Info } from 'lucide-react';
 import { EModelEndpoint, EToolResources } from 'librechat-data-provider';
 import { Button, DropdownPopup, SharePointIcon, TooltipAnchor } from '@librechat/client';
 import type { ExtendedFile } from '~/common';
 import { useSharePointFileHandlingNoChatContext } from '~/hooks/Files/useSharePointFileHandling';
+import { useAgentFileConfig, useLocalize, useLazyEffect, useFileDrop } from '~/hooks';
 import { useFileHandlingNoChatContext } from '~/hooks/Files/useFileHandling';
-import { useAgentFileConfig, useLocalize, useLazyEffect } from '~/hooks';
 import { SharePointPickerDialog } from '~/components/SharePoint';
 import FileRow from '~/components/Chat/Input/Files/FileRow';
 import { useGetStartupConfig } from '~/data-provider';
@@ -39,7 +39,7 @@ function FileContext({
   const { endpointFileConfig, providerValue, endpointType } = useAgentFileConfig();
   const endpointOverride = providerValue || EModelEndpoint.agents;
 
-  const { handleFileChange } = useFileHandlingNoChatContext(
+  const { handleFileChange, handleFiles } = useFileHandlingNoChatContext(
     {
       additionalMetadata: { agent_id, tool_resource: EToolResources.context },
       endpointOverride,
@@ -69,6 +69,18 @@ function FileContext({
   );
   const isUploadDisabled = endpointFileConfig?.disabled ?? false;
   const disabledUploadButton = isEphemeralAgent(agent_id);
+  const handleDroppedFiles = useCallback(
+    (droppedFiles: File[]) => {
+      handleFiles(droppedFiles);
+    },
+    [handleFiles],
+  );
+
+  const { isOver, canDrop, drop } = useFileDrop({
+    onDrop: handleDroppedFiles,
+    disabled: disabledUploadButton,
+  });
+  const isDropActive = canDrop && isOver;
   const handleSharePointFilesSelected = async (sharePointFiles: any[]) => {
     try {
       await handleSharePointFiles(sharePointFiles);
@@ -138,7 +150,13 @@ function FileContext({
   );
 
   return (
-    <div className="flex flex-col gap-2">
+    <div
+      ref={drop}
+      className={cn(
+        'flex flex-col gap-2 rounded-lg transition-shadow',
+        isDropActive && 'ring-2 ring-ring-primary',
+      )}
+    >
       <div className="flex items-center justify-between gap-2">
         {showHeader ? (
           <div className="flex min-w-0 items-center gap-1.5">
