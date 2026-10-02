@@ -4,18 +4,27 @@ import { Turnstile } from '@marsidev/react-turnstile';
 import { ThemeContext, SecretInput, Spinner, Button, Input, isDark } from '@librechat/client';
 import type { TLoginUser, TStartupConfig } from 'librechat-data-provider';
 import type { TAuthContext } from '~/common';
-import { useResendVerificationEmail, useGetStartupConfig } from '~/data-provider';
+import { useGetStartupConfig } from '~/data-provider';
 import { validateEmail } from '~/utils';
 import { useLocalize } from '~/hooks';
+import Resend from './Resend';
 
 type TLoginFormProps = {
   onSubmit: (data: TLoginUser) => void;
   startupConfig: TStartupConfig;
   error: Pick<TAuthContext, 'error'>['error'];
   setError: Pick<TAuthContext, 'setError'>['setError'];
+  /** Set when registration just sent a verification link to this address. */
+  verificationEmail?: string;
 };
 
-const LoginForm: React.FC<TLoginFormProps> = ({ onSubmit, startupConfig, error, setError }) => {
+const LoginForm: React.FC<TLoginFormProps> = ({
+  onSubmit,
+  startupConfig,
+  error,
+  setError,
+  verificationEmail,
+}) => {
   const localize = useLocalize();
   const { theme } = useContext(ThemeContext);
   const {
@@ -23,8 +32,8 @@ const LoginForm: React.FC<TLoginFormProps> = ({ onSubmit, startupConfig, error, 
     getValues,
     handleSubmit,
     formState: { errors, isSubmitting },
-  } = useForm<TLoginUser>();
-  const [showResendLink, setShowResendLink] = useState<boolean>(false);
+  } = useForm<TLoginUser>({ defaultValues: { email: verificationEmail ?? '' } });
+  const [showResendLink, setShowResendLink] = useState<boolean>(!!verificationEmail);
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
 
   const { data: config } = useGetStartupConfig();
@@ -45,13 +54,6 @@ const LoginForm: React.FC<TLoginFormProps> = ({ onSubmit, startupConfig, error, 
     }
   }, [error, showResendLink]);
 
-  const resendLinkMutation = useResendVerificationEmail({
-    onMutate: () => {
-      setError(undefined);
-      setShowResendLink(false);
-    },
-  });
-
   if (!startupConfig) {
     return null;
   }
@@ -65,28 +67,14 @@ const LoginForm: React.FC<TLoginFormProps> = ({ onSubmit, startupConfig, error, 
     ) : null;
   };
 
-  const handleResendEmail = () => {
-    const email = getValues('email');
-    if (!email) {
-      return setShowResendLink(false);
-    }
-    resendLinkMutation.mutate({ email });
-  };
-
   return (
     <>
       {showResendLink && (
-        <div className="mt-2 rounded-md border border-status-success-border bg-status-success-subtle px-3 py-2 text-sm text-text-secondary">
-          {localize('com_auth_email_verification_resend_prompt')}
-          <button
-            type="button"
-            className="ml-2 text-link hover:underline"
-            onClick={handleResendEmail}
-            disabled={resendLinkMutation.isLoading}
-          >
-            {localize('com_auth_email_resend_link')}
-          </button>
-        </div>
+        <Resend
+          sentTo={verificationEmail}
+          getEmail={() => getValues('email')}
+          onResend={() => setError(undefined)}
+        />
       )}
       <form
         className="mt-6"
@@ -175,7 +163,7 @@ const LoginForm: React.FC<TLoginFormProps> = ({ onSubmit, startupConfig, error, 
             data-testid="login-button"
             type="submit"
             disabled={(requireCaptcha && !turnstileToken) || isSubmitting}
-            variant="submit"
+            variant="default"
             className="h-12 w-full rounded-2xl"
           >
             {isSubmitting ? <Spinner /> : localize('com_auth_continue')}

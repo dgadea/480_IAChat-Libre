@@ -13,6 +13,7 @@ import LoginForm from './LoginForm';
 
 interface LoginLocationState {
   redirect_to?: string;
+  verificationEmail?: string;
 }
 
 /** Error codes the server appends to the login redirect when an OAuth navigation is rejected. */
@@ -120,6 +121,7 @@ function Login() {
           startupConfig={startupConfig}
           error={error}
           setError={setError}
+          verificationEmail={(location.state as LoginLocationState | null)?.verificationEmail}
         />
       )}
       {startupConfig?.registrationEnabled === true && (

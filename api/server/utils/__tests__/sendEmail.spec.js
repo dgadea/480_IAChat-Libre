@@ -9,6 +9,7 @@ jest.mock('@librechat/api', () => ({
   logAxiosError: jest.fn(),
   isEnabled: jest.fn((val) => val === 'true' || val === true),
   readFileAsString: jest.fn(),
+  resolveEmailLogoUrl: jest.fn(),
   sendEmailViaSendGrid: jest.fn(),
 }));
 
@@ -55,6 +56,7 @@ function loadSendEmail() {
     logAxiosError: jest.fn(),
     isEnabled: jest.fn((val) => val === 'true' || val === true),
     readFileAsString: jest.fn().mockResolvedValue({ content: '<p>{{name}}</p>' }),
+    resolveEmailLogoUrl: jest.fn(),
     sendEmailViaSendGrid: mockSendEmailViaSendGrid,
   }));
   return require('../sendEmail');

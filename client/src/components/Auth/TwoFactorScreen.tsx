@@ -153,7 +153,7 @@ const TwoFactorScreen: React.FC = React.memo(() => {
         <div className="flex items-center justify-between">
           <Button
             type="submit"
-            variant="submit"
+            variant="default"
             aria-label={localize('com_auth_continue')}
             data-testid="login-button"
             disabled={isLoading}

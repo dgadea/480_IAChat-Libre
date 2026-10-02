@@ -1,4 +1,6 @@
+import { waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { dataService } from 'librechat-data-provider';
 import type { TStartupConfig } from 'librechat-data-provider';
 import * as endpointQueries from '~/data-provider/Endpoints/queries';
 import * as miscDataProvider from '~/data-provider/Misc/queries';
@@ -8,6 +10,13 @@ import * as authQueries from '~/data-provider/Auth/queries';
 import Login from '../LoginForm';
 
 jest.mock('librechat-data-provider/react-query');
+jest.mock('librechat-data-provider', () => {
+  const actual = jest.requireActual('librechat-data-provider');
+  return {
+    ...actual,
+    dataService: { ...actual.dataService, resendVerificationEmail: jest.fn() },
+  };
+});
 
 const mockLogin = jest.fn();
 
@@ -160,4 +169,42 @@ test('displays validation error messages', async () => {
 
   expect(getByText(/You must enter a valid email address/i)).toBeInTheDocument();
   expect(getByText(/Password must be at least 8 characters/i)).toBeInTheDocument();
+});
+
+test('after registration, prefills the email and holds the resend button until the cooldown ends', () => {
+  const { getByLabelText, getByText, getByRole } = render(
+    <Login
+      onSubmit={mockLogin}
+      startupConfig={mockStartupConfig}
+      error={undefined}
+      setError={jest.fn()}
+      verificationEmail="new@example.com"
+    />,
+  );
+
+  expect(getByLabelText(/email/i)).toHaveValue('new@example.com');
+  expect(getByText(/Check new@example.com for the verification link/i)).toBeInTheDocument();
+  expect(getByRole('button', { name: /Resend in 60s/i })).toBeDisabled();
+});
+
+test('an unverified login offers a resend that posts the typed email', async () => {
+  const resend = jest.mocked(dataService.resendVerificationEmail);
+  resend.mockResolvedValue({ message: 'ok' });
+  const setError = jest.fn();
+  const { getByLabelText, getByRole, findByText } = render(
+    <Login
+      onSubmit={mockLogin}
+      startupConfig={mockStartupConfig}
+      error="422 Email not verified"
+      setError={setError}
+    />,
+  );
+
+  await userEvent.type(getByLabelText(/email/i), 'pending@example.com');
+  await userEvent.click(getByRole('button', { name: /Resend Email/i }));
+
+  await waitFor(() => expect(resend).toHaveBeenCalledWith({ email: 'pending@example.com' }));
+  expect(setError).toHaveBeenCalledWith(undefined);
+  expect(await findByText(/Verification email resent successfully/i)).toBeInTheDocument();
+  expect(getByRole('button', { name: /Resend in 60s/i })).toBeDisabled();
 });

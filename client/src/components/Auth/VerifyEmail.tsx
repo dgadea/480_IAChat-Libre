@@ -1,13 +1,18 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Button, Spinner, ThemeSelector } from '@librechat/client';
-import { useVerifyEmailMutation, useResendVerificationEmail } from '~/data-provider';
+import {
+  useGetStartupConfig,
+  useVerifyEmailMutation,
+  useResendVerificationEmail,
+} from '~/data-provider';
 import { useLocalize } from '~/hooks';
 
 function RequestPasswordReset() {
   const navigate = useNavigate();
   const localize = useLocalize();
   const [params] = useSearchParams();
+  const { data: startupConfig } = useGetStartupConfig();
 
   const [countdown, setCountdown] = useState<number>(3);
   const [headerText, setHeaderText] = useState<string>('');
@@ -44,22 +49,22 @@ function RequestPasswordReset() {
 
   const verifyEmailMutation = useVerifyEmailMutation({
     onSuccess: () => {
-      setHeaderText(localize('com_auth_email_verification_success') + ' 🎉');
+      setHeaderText(localize('com_auth_email_verification_success'));
       setVerificationStatus(true);
       countdownRedirect();
     },
     onError: (_error: unknown) => {
-      showFailure(localize('com_auth_email_verification_failed') + ' 😢');
+      showFailure(localize('com_auth_email_verification_failed'));
     },
   });
 
   const resendEmailMutation = useResendVerificationEmail({
     onSuccess: () => {
-      setHeaderText(localize('com_auth_email_resent_success') + ' 📧');
+      setHeaderText(localize('com_auth_email_resent_success'));
       countdownRedirect();
     },
     onError: () => {
-      showFailure(localize('com_auth_email_resent_failed') + ' 😢');
+      showFailure(localize('com_auth_email_resent_failed'));
     },
     onMutate: () => setShowResendLink(false),
   });
@@ -78,27 +83,27 @@ function RequestPasswordReset() {
     } else {
       showFailure(
         email
-          ? localize('com_auth_email_verification_failed_token_missing') + ' 😢'
-          : localize('com_auth_email_verification_invalid') + ' 🤨',
+          ? localize('com_auth_email_verification_failed_token_missing')
+          : localize('com_auth_email_verification_invalid'),
       );
     }
   }, [token, email, verificationStatus, verifyEmailMutation, localize, showFailure]);
 
   const VerificationSuccess = () => (
     <div className="flex flex-col items-center justify-center">
-      <h1 className="mb-4 text-center text-3xl font-semibold text-text-primary">{headerText}</h1>
+      <h1 className="mb-4 text-center text-xl font-medium text-text-primary">{headerText}</h1>
       {countdown > 0 && (
-        <p className="text-center text-lg text-text-secondary">
+        <p className="text-center text-sm text-text-secondary">
           {localize('com_auth_email_verification_redirecting', { 0: countdown.toString() })}
         </p>
       )}
       {showResendLink && countdown === 0 && (
-        <p className="text-center text-lg text-text-secondary">
-          {localize('com_auth_email_verification_resend_prompt')}
+        <p className="text-center text-sm text-text-secondary">
+          {localize('com_auth_email_verification_resend_prompt')}{' '}
           <Button
             type="button"
             variant="link"
-            className="ml-2 inline h-auto p-0 text-link"
+            className="inline h-auto p-0 text-link"
             onClick={handleResendEmail}
             disabled={resendEmailMutation.isLoading}
           >
@@ -111,7 +116,7 @@ function RequestPasswordReset() {
 
   const VerificationInProgress = () => (
     <div className="flex flex-col items-center justify-center">
-      <h1 className="mb-4 text-center text-3xl font-semibold text-text-primary">
+      <h1 className="mb-4 text-center text-xl font-medium text-text-primary">
         {localize('com_auth_email_verification_in_progress')}
       </h1>
       <div className="mt-4 flex justify-center">
@@ -125,6 +130,11 @@ function RequestPasswordReset() {
       <div className="absolute bottom-0 left-0 m-4">
         <ThemeSelector />
       </div>
+      <img
+        src="assets/logo.png"
+        className="mb-8 h-20 w-20 object-contain"
+        alt={localize('com_ui_logo', { 0: startupConfig?.appTitle ?? 'LibreChat' })}
+      />
       {verificationStatus ? <VerificationSuccess /> : <VerificationInProgress />}
     </div>
   );

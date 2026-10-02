@@ -26,6 +26,7 @@ jest.mock('~/hooks', () => ({
 }));
 
 jest.mock('~/data-provider', () => ({
+  useGetStartupConfig: () => ({ data: { appTitle: 'Test' } }),
   useVerifyEmailMutation: (options: MutationOptions) => {
     verifyOptions = options;
     return { mutate: jest.fn(), isLoading: false };

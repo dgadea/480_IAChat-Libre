@@ -8,6 +8,7 @@ const {
   logAxiosError,
   isEnabled,
   readFileAsString,
+  resolveEmailLogoUrl,
   sendEmailViaSendGrid,
 } = require('@librechat/api');
 
@@ -99,7 +100,7 @@ const sendEmail = async ({ email, subject, payload, template, throwError = true 
   try {
     const { content: source } = await readFileAsString(path.join(__dirname, 'emails', template));
     const compiledTemplate = handlebars.compile(source);
-    const html = compiledTemplate(payload);
+    const html = compiledTemplate({ logoUrl: resolveEmailLogoUrl(process.env), ...payload });
 
     // Prepare common email data
     const fromName = process.env.EMAIL_FROM_NAME || process.env.APP_TITLE;

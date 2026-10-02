@@ -268,7 +268,7 @@ const sendVerificationEmail = async (user) => {
   }/verify?token=${verifyToken}&email=${encodeURIComponent(email)}`;
   await sendEmail({
     email,
-    subject: 'Verify your email',
+    subject: 'Confirmá tu dirección de correo',
     payload: {
       appName: process.env.APP_TITLE || 'LibreChat',
       name: user.name || user.username || email,
@@ -977,7 +977,7 @@ const resendVerificationEmail = async (req) => {
 
     await sendEmail({
       email: user.email,
-      subject: 'Verify your email',
+      subject: 'Confirmá tu dirección de correo',
       payload: {
         appName: process.env.APP_TITLE || 'LibreChat',
         name: user.name || user.username || user.email,

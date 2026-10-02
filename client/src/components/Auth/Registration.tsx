@@ -48,14 +48,21 @@ const Registration: React.FC = () => {
     onMutate: () => {
       setIsSubmitting(true);
     },
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       setIsSubmitting(false);
       setCountdown(3);
       const timer = setInterval(() => {
         setCountdown((prevCountdown) => {
           if (prevCountdown <= 1) {
             clearInterval(timer);
-            navigate('/c/new', { replace: true });
+            if (startupConfig?.emailEnabled) {
+              navigate('/login', {
+                replace: true,
+                state: { verificationEmail: variables.email },
+              });
+            } else {
+              navigate('/c/new', { replace: true });
+            }
             return 0;
           } else {
             return prevCountdown - 1;
@@ -231,7 +238,7 @@ const Registration: React.FC = () => {
                 }
                 type="submit"
                 aria-label="Submit registration"
-                variant="submit"
+                variant="default"
                 className="h-12 w-full rounded-2xl"
               >
                 {isSubmitting ? <Spinner /> : localize('com_auth_continue')}

@@ -117,6 +117,8 @@ afterEach(() => {
   delete process.env.LANGFUSE_SAMPLE_RATE;
   delete process.env.TENANT_ISOLATION_STRICT;
   delete process.env.CODE_ENVIRONMENT_DECISION_VERSION;
+  delete process.env.SENDGRID_API_KEY;
+  delete process.env.EMAIL_FROM;
 });
 
 describe('GET /api/config', () => {
@@ -157,6 +159,17 @@ describe('GET /api/config', () => {
       expect(response.body.socialLogins).toEqual(['saml']);
       expect(response.body.turnstile).toEqual({ siteKey: 'tenant-key' });
       expect(response.body).not.toHaveProperty('modelSpecs');
+    });
+
+    it('reports email as enabled when only SendGrid is configured', async () => {
+      process.env.SENDGRID_API_KEY = 'SG.key';
+      process.env.EMAIL_FROM = 'noreply@example.com';
+      mockGetAppConfig.mockResolvedValue(baseAppConfig);
+      const app = createApp(null);
+
+      const response = await request(app).get('/api/config');
+
+      expect(response.body.emailEnabled).toBe(true);
     });
 
     it('should return minimal payload without authenticated-only fields', async () => {
